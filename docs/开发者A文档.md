@@ -113,7 +113,9 @@ export interface LocationPoint {
 
 ### 2.3 生成 Mock 数据
 
-在脚本完成前，**必须**手动编写一份 `src/data/content.json`，包含至少 3 个地点和 5 个故事，提交到 Git，以便 Dev B 和 Dev C 立即开始 UI 开发。
+在脚本完成前，~~必须~~（已废弃）手动编写一份 `src/data/content.json`，包含至少 3 个地点和 5 个故事，提交到 Git，以便 Dev B 和 Dev C 立即开始 UI 开发。
+
+> **更新**：目前已实现飞书数据同步，请直接运行 `npm run sync` 生成真实数据。
 
 ------
 
