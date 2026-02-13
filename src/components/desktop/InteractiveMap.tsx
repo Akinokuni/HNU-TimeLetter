@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 // 1. 引入数据包袱（假设你已经改名叫 mock-content.json）
-import data from '@/data/mock-content.json';
+import data from '@/data/content.json';
 import PostcardModal from './PostcardModal';
 
 export function InteractiveMap() {
@@ -26,6 +26,9 @@ export function InteractiveMap() {
         {data.locations.map((loc) => {
           // 获取该地点的最新一个故事（用来显示头像）
           const latestStory = loc.stories[0];
+
+          // 如果没有故事，暂不显示该地点
+          if (!latestStory) return null;
 
           return (
             <div

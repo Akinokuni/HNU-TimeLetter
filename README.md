@@ -93,7 +93,6 @@ src/
 │   ├── hooks.ts      # 自定义 Hooks
 │   └── utils.ts      # 工具函数
 ├── data/
-│   ├── mock-content.json     # Mock 数据（开发用）
 │   └── content.json          # 生成的真实数据（.gitignore）
 └── scripts/
     └── sync-feishu.ts        # 飞书数据同步脚本

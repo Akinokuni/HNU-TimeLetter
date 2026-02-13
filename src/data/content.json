@@ -10,8 +10,8 @@
           "id": "recva5SLTWUkRx",
           "characterId": "char-001",
           "characterName": "夏目绫",
-          "avatarUrl": "/images/avatars/natsume.png",
-          "mainImageUrl": "/images/scenes/library-natsume.jpg",
+          "avatarUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/local-assets/4c51a3b123000cf0d46bcd0b13601913.jpg",
+          "mainImageUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/local-assets/5478df15878f986da09c3c0296841b7e.png",
           "content": "那天下午，阳光透过图书馆的落地窗洒在书架上。她坐在靠窗的位置，手里捧着一本村上春树的《挪威的森林》。\n\n我走过去，轻声问：\"这个位置有人吗？\"\n\n她抬起头，露出温柔的笑容：\"没有，请坐。\"\n\n就这样，我们成为了图书馆的常客。",
           "author": "投稿者A",
           "date": "2024.03.15",
@@ -21,8 +21,8 @@
           "id": "recva5SMcLPT8n",
           "characterId": "char-002",
           "characterName": "樱井美咲",
-          "avatarUrl": "/images/avatars/sakurai.png",
-          "mainImageUrl": "/images/scenes/library-sakurai.jpg",
+          "avatarUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/local-assets/dc6ca23ef622b1fb76a3a42cf88279f6.jpg",
+          "mainImageUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/local-assets/c33641056fbf08db2f65b90870a29b9f.png",
           "content": "考试周的图书馆总是人满为患。她占了一个角落的位置，周围堆满了专业书。\n\n\"借过一下，这本《数据结构》能借我看看吗？\"\n\n她推了推眼镜，递给我书的同时，还附上了一张手写的笔记。\n\n\"这是我整理的重点，希望对你有帮助。\"",
           "author": "投稿者B",
           "date": "2024.06.20",
@@ -40,12 +40,38 @@
           "id": "recva5SMva6r9L",
           "characterId": "char-003",
           "characterName": "月见栞",
-          "avatarUrl": "/images/avatars/tsukimi.png",
-          "mainImageUrl": "/images/scenes/lake-tsukimi.jpg",
+          "avatarUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/local-assets/f7b72a9728be07e2fe0261ab61c1f899.png",
+          "mainImageUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/local-assets/ad203db919f97099495580c253d5eaa8.png",
           "content": "傍晚的东坡湖特别美，夕阳把湖面染成了金色。\n\n她站在湖边，手里拿着相机，专注地捕捉着光影的变化。\n\n\"你也喜欢摄影吗？\"我问。\n\n\"嗯，我想把这些美好的瞬间都留下来。\"她转过身，对着我按下了快门。\n\n那张照片，我至今还保存着。",
           "author": "投稿者C",
           "date": "2024.04.10",
           "locationId": "lake-001"
+        }
+      ]
+    },
+    {
+      "id": "siyuan-001",
+      "name": "思源学堂",
+      "x": 35,
+      "y": 70,
+      "stories": []
+    },
+    {
+      "id": "aaa",
+      "name": "test",
+      "x": 20,
+      "y": 50,
+      "stories": [
+        {
+          "id": "recvb7QYRdG1mm",
+          "characterId": "char-003",
+          "characterName": "月见栞",
+          "avatarUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/0bcef223f26bfd51ad72cdd855099e45.png",
+          "mainImageUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/6e0168a2fe87eb75c8f0c1a63acfa531.jpg",
+          "content": "12345",
+          "author": "12344",
+          "date": "2024.04.11",
+          "locationId": "aaa"
         }
       ]
     }

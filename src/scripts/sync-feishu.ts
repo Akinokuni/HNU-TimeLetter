@@ -14,6 +14,9 @@ import * as crypto from 'crypto';
 import OSS from 'ali-oss';
 import type { LocationPoint, Story } from '../lib/types';
 
+// 读取本地地点配置文件
+import locationsConfig from '../config/locations.json';
+
 config({ path: '.env.local' });
 
 // 环境变量
@@ -23,6 +26,7 @@ const FEISHU_APP_TOKEN = process.env.FEISHU_APP_TOKEN;
 const FEISHU_TABLE_ID = process.env.FEISHU_TABLE_ID;
 const FEISHU_VIEW_ID = process.env.FEISHU_VIEW_ID;
 const FEISHU_OSS_TABLE_ID = 'tblwLUNdWNzv1kZw'; // OSS 文件记录表
+const FEISHU_LOCATIONS_TABLE_ID = 'tblaMWD1PV9lwXDr'; // 地点坐标表
 
 // 阿里云 OSS 配置
 const OSS_REGION = process.env.ALIYUN_OSS_REGION;
@@ -30,12 +34,8 @@ const OSS_BUCKET = process.env.ALIYUN_OSS_BUCKET;
 const OSS_ACCESS_KEY_ID = process.env.ALIYUN_OSS_ACCESS_KEY_ID;
 const OSS_ACCESS_KEY_SECRET = process.env.ALIYUN_OSS_ACCESS_KEY_SECRET;
 
-// 地点坐标配置（可以后续移到配置文件）
-const LOCATION_COORDS: Record<string, { name: string; x: number; y: number }> = {
-  'lib-001': { name: '图书馆', x: 45, y: 30 },
-  'lake-001': { name: '东坡湖', x: 60, y: 55 },
-  'siyuan-001': { name: '思源学堂', x: 35, y: 70 },
-};
+// 地点坐标配置（从配置文件读取，后续会被飞书数据覆盖）
+let LOCATION_COORDS: Record<string, { name: string; x: number; y: number }> = locationsConfig;
 
 // 初始化 OSS 客户端
 let ossClient: OSS | null = null;
@@ -337,6 +337,65 @@ async function fetchFeishuRecords(token: string): Promise<any[]> {
 }
 
 /**
+ * 拉取飞书地点数据并更新本地配置文件
+ */
+async function fetchLocations(token: string): Promise<Record<string, { name: string; x: number; y: number }>> {
+  if (!FEISHU_APP_TOKEN || !FEISHU_LOCATIONS_TABLE_ID) {
+    console.warn('⚠️ 缺少飞书地点表配置，跳过地点同步');
+    return locationsConfig;
+  }
+
+  const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_LOCATIONS_TABLE_ID}/records?page_size=100`;
+  
+  try {
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const data = await response.json();
+    
+    if (data.code !== 0) {
+      console.error(`⚠️ 拉取地点数据失败: ${data.msg}`);
+      return locationsConfig;
+    }
+
+    const newLocations: Record<string, { name: string; x: number; y: number }> = {};
+    
+    if (data.data.items) {
+      console.log(`🔍 飞书返回了 ${data.data.items.length} 条地点记录`);
+      data.data.items.forEach((item: any) => {
+        const fields = item.fields;
+        const id = fields['地点ID'];
+        console.log(`  - 记录ID: ${item.record_id}, 地点ID: ${id}, 名称: ${fields['地点名称']}`);
+        
+        if (id) {
+          newLocations[id] = {
+            name: fields['地点名称'] || '',
+            x: Number(fields['坐标X(%)']) || 0,
+            y: Number(fields['坐标Y(%)']) || 0,
+          };
+        } else {
+            console.warn(`  ⚠️ 记录 ${item.record_id} 缺少 '地点ID' 字段`);
+        }
+      });
+    }
+
+    // 写入本地配置文件
+    const outputPath = path.join(__dirname, '../config/locations.json');
+    fs.writeFileSync(outputPath, JSON.stringify(newLocations, null, 2), 'utf-8');
+    console.log(`✅ 地点数据已更新至: ${outputPath}`);
+    
+    return newLocations;
+  } catch (error) {
+    console.error('⚠️ 同步地点数据异常:', error);
+    return locationsConfig;
+  }
+}
+
+/**
  * 转换飞书数据为本地格式
  */
 async function transformData(token: string, feishuRecords: any[]): Promise<LocationPoint[]> {
@@ -410,7 +469,15 @@ async function transformData(token: string, feishuRecords: any[]): Promise<Locat
   
   // 聚合为地点数据
   const locations: LocationPoint[] = [];
-  storiesMap.forEach((stories, locationId) => {
+  
+  // 获取所有涉及的地点 ID（包括配置中的和故事中引用的）
+  const allLocationIds = new Set([
+    ...Object.keys(LOCATION_COORDS),
+    ...storiesMap.keys()
+  ]);
+
+  allLocationIds.forEach((locationId) => {
+    const stories = storiesMap.get(locationId) || [];
     const coords = LOCATION_COORDS[locationId] || {
       name: stories[0]?.locationId || locationId,
       x: 50,
@@ -452,8 +519,13 @@ async function main() {
     console.log('🔑 获取访问令牌...');
     const token = await getTenantAccessToken();
     console.log('✅ 令牌获取成功\n');
-    
-    // 2. 拉取数据
+
+    // 2. 同步地点数据
+    console.log('📍 同步地点配置...');
+    LOCATION_COORDS = await fetchLocations(token);
+    console.log(`✅ 加载了 ${Object.keys(LOCATION_COORDS).length} 个地点配置\n`);
+
+    // 3. 拉取数据
     console.log('📥 拉取飞书记录...');
     const feishuRecords = await fetchFeishuRecords(token);
     console.log(`✅ 成功拉取 ${feishuRecords.length} 条记录\n`);

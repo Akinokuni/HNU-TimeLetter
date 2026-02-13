@@ -9,7 +9,7 @@
 ✅ **已完成**:
 - 项目框架搭建
 - 飞书 API 认证（App ID 和 Secret 已配置）
-- Mock 数据可用于开发
+- 真实数据同步流程
 
 ❌ **待完成**:
 - 获取正确的多维表格 `app_token`
@@ -54,14 +54,6 @@ FEISHU_TABLE_ID=tblWufNIW5TtO3Am
 ```bash
 npx tsx src/scripts/test-feishu-correct.ts
 ```
-
-## 在此之前如何开发？
-
-项目已提供 Mock 数据（`src/data/mock-content.json`），包含：
-- 3 个地点（图书馆、东坡湖、思源学堂）
-- 5 个故事
-
-开发者 B 和 C 可以直接使用 Mock 数据进行 UI 开发，无需等待飞书配置完成。
 
 ## 详细文档
 

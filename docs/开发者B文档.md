@@ -13,7 +13,7 @@
 >
 > **工作目录**: `src/components/desktop/`
 >
-> **依赖关系**: 依赖 Dev A 提供的 `types.ts` 和 `mock-content.json`；依赖设计师提供的 SVG 地图。
+> **依赖关系**: 依赖 Dev A 提供的 `types.ts` 和 `content.json`（由 `npm run sync` 生成）；依赖设计师提供的 SVG 地图。
 
 ## 1. 核心任务概览
 
@@ -136,7 +136,7 @@
    - 在 `components/desktop` 下建立组件文件。
    - 找一张海大地图（或任意大图）作为 placeholder，实现 `InteractiveMap` 的全屏适配，确保窗口缩放时图片比例正确。
 2. **Day 2**:
-   - 引入 `mock-content.json`。
+   - 引入 `content.json`（确保已运行 `npm run sync` 生成数据）。
    - 实现坐标点渲染逻辑，手动调整几个点的 `x, y` 百分比，确保它们精准地钉在地图的建筑物上。
 3. **Day 3**:
    - 开发 `PostcardModal` 静态布局。先别管切换逻辑，先把“左图右文”的样式写得漂亮（字体、间距、圆角）。
@@ -153,4 +153,4 @@
 ### 技术提示 (Tips)
 
 - **关于图片与坐标**: 如果底图本身比例改变（例如从 16:9 换成 4:3），百分比坐标依然有效，但视觉上可能会错位。因此，**务必在开发早期就确定地图素材的宽高比**（建议锁定为标准比例，如 16:9 或 3440:1440），并告知设计师后续绘图必须保持此比例画布。
-- **Mock 数据使用**: 在组件中直接 `import data from '@/data/mock-content.json'` 即可，不需要等待 API 接口。
+- **数据使用**: 在组件中直接 `import data from '@/data/content.json'` 即可（需先运行 `npm run sync`）。

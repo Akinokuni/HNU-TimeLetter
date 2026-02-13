@@ -102,7 +102,7 @@
 1. **Day 1**:
    - 拉取 Dev A 代码，运行项目。
    - 在 `app/page.tsx` 中，确保手机访问时能看到您负责的 `<MobileExperience>` 组件。
-   - 使用 Mock 数据实现一个基础的双列瀑布流列表 (`StoryFeed`)。
+   - 使用 `src/data/content.json` 中的数据实现一个基础的双列瀑布流列表 (`StoryFeed`)。
 2. **Day 2**:
    - **攻坚 Shared Layout Animation**:
      - 创建一个点击卡片打开全屏 `div` 的 Demo。
