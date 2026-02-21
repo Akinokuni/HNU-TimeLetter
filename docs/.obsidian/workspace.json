@@ -11,14 +11,26 @@
             "id": "e467b11fe7303fa2",
             "type": "leaf",
             "state": {
-              "type": "markdown",
-              "state": {
-                "file": "视觉与设计规范交接单.md",
-                "mode": "source",
-                "source": false
-              },
+              "type": "empty",
+              "state": {},
               "icon": "lucide-file",
-              "title": "视觉与设计规范交接单"
+              "title": "新标签页"
+            }
+          }
+        ]
+      },
+      {
+        "id": "e8235f51314f3043",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "58a38c939c4d7017",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "新标签页"
             }
           }
         ]
@@ -185,18 +197,33 @@
   },
   "active": "e467b11fe7303fa2",
   "lastOpenFiles": [
-    "开发指南.md",
-    "架构.canvas",
-    "欢迎.md",
-    "与她的海大时光笺_团队分工方案_v1.0.md",
-    "与她的海大时光笺 企划案_v1.0.md",
+    "archive/开发者B文档.md",
+    "archive.zip",
     "项目进度.md",
-    "图片上传使用指南.md",
-    "视觉与设计规范交接单.md",
-    "开发者C文档.md",
-    "开发者B文档.md",
-    "开发者A文档.md",
-    "飞书配置指南.md",
-    "OSS图片存储配置指南.md"
+    "文档索引.md",
+    "guides/环境搭建.md",
+    "guides/飞书CMS配置.md",
+    "roles/移动端开发-DevC.md",
+    "roles/PC端开发-DevB.md",
+    "roles/基础设施-DevA.md",
+    "design/视觉规范.md",
+    "design/项目愿景.md",
+    "design/交互设计.md",
+    "architecture/技术栈.md",
+    "architecture/数据模型.md",
+    "design/visual.md",
+    "design/vision.md",
+    "archive/开发者A文档.md",
+    "roles/dev-b-desktop.md",
+    "roles/dev-a-infra.md",
+    "archive/开发者C文档.md",
+    "archive/项目进度.md",
+    "roles/dev-c-mobile.md",
+    "archive/开发指南.md",
+    "guides/feishu-cms.md",
+    "design/interaction.md",
+    "archive/图片上传使用指南.md",
+    "archive/架构.canvas",
+    "架构.canvas"
   ]
 }
