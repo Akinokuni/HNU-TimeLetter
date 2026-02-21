@@ -45,7 +45,10 @@ src/
 
 ### 1.4 核心交互组件
 
-- **`EnvelopeIntro`**: 实现全局开场动画（信封拆开），管理 `isEnvelopeOpened` 状态。
+- **`EnvelopeIntro`**: 
+  - 实现全局开场动画（信封拆开）。
+  - **新增**: 包含垂直滚动的“关于项目”和“关于我们”页面。
+  - 管理 `isEnvelopeOpened` 状态。
 - **`ResponsiveEntry`**: 在 `app/page.tsx` 实现基于屏幕宽度的组件分流。
 
 ## 2. 数据管道 (Data Pipeline)
