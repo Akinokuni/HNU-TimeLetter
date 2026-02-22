@@ -49,8 +49,21 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
         setIsTextVisible(!isTextVisible);
     };
 
+    // 滚轮/触摸板滑动处理: 在顶部向下滑动 (Scroll Up) 时返回地图
+    const handleWheel = (e: React.WheelEvent) => {
+        const container = e.currentTarget;
+        // 如果在顶部 (scrollTop === 0) 且 向上滚动 (deltaY < 0)
+        // 使用 -30 作为阈值防止误触
+        if (container.scrollTop === 0 && e.deltaY < -30) {
+            onBack();
+        }
+    };
+
     return (
-        <div className="w-full h-full flex flex-col items-center pt-10 overflow-y-auto pb-20 no-scrollbar">
+        <div 
+            className="w-full h-full flex flex-col items-center pt-10 overflow-y-auto pb-20 no-scrollbar"
+            onWheel={handleWheel}
+        >
             {/* 上部: 故事卡片堆叠区 */}
             <div className="w-full flex-shrink-0">
                 <StoryCardStack 

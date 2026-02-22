@@ -1,9 +1,9 @@
 'use client';
 
-import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
-import Image from 'next/image';
+import { motion, useMotionValue, useTransform, PanInfo, animate, MotionValue, useMotionValueEvent } from 'framer-motion';
 import { Story } from '@/lib/types';
 import { X } from 'lucide-react';
+import { useEffect } from 'react';
 
 interface StoryCardStackProps {
   stories: Story[];
@@ -13,22 +13,23 @@ interface StoryCardStackProps {
   onBack: () => void;      // 返回地图视图
 }
 
-/**
- * StoryCardStack (故事卡片堆组件)
- * 对应文档: docs/roles/PC端开发-DevB.md -> 1.2 StoryCardStack
- * 
- * 功能职责:
- * 1. 层叠展示故事卡片，使用 Framer Motion 实现物理动效。
- * 2. 支持自适应宽高比 (Adaptive Ratio)，不强制裁剪图片。
- * 3. 交互逻辑: 拖拽/滑动 (Swipe) 切换，点击 (Click) 查看详情。
- */
 export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBack }: StoryCardStackProps) {
-  // 获取最顶层的卡片索引 (activeIndices 的第一个元素)
   const topIndex = activeIndices[0];
+  
+  // 共享的拖拽值，仅用于驱动"下一张"卡片的联动动画 (Scale/Opacity)
+  // 实际的卡片位移由各卡片内部的 MotionValue (x) 独立管理
+  const sharedDragX = useMotionValue(0);
+
+  // 处理滑动完成的逻辑
+  const handleSwipeComplete = () => {
+      onSwipe();
+      // 重置联动值，以便下一张卡片（新的 Top）处于初始状态
+      sharedDragX.set(0); 
+  };
 
   return (
     <div className="relative w-full h-[60vh] flex items-center justify-center">
-        {/* 返回按钮 (Back to Map) */}
+        {/* 返回按钮 */}
         <button 
             onClick={onBack}
             className="absolute top-4 left-4 z-50 p-2 bg-white/80 rounded-full shadow-md hover:bg-white transition-colors cursor-pointer pointer-events-auto"
@@ -36,49 +37,28 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBa
             <X size={24} />
         </button>
 
-      {/* 
-        卡片堆叠容器
-        - 布局: Flex 居中，无固定宽高，允许内部子元素撑开。
-        - 渲染逻辑: 逆序渲染 activeIndices (确保 topIndex 最后渲染，即 z-index 最高)。
-      */}
       <div className="relative w-full h-full flex items-center justify-center">
         {activeIndices.slice().reverse().map((index, i) => {
             const isTop = index === topIndex;
             const story = stories[index];
-            const offset = activeIndices.length - 1 - i; // 计算当前卡片距离顶层的偏移量 (0=顶层)
-
-            // 视觉堆叠效果计算:
-            // 越往底层 (offset 越大): 尺寸越小 (scale 减小), 位置越靠下 (y 增加), 透明度越低 (opacity 降低)
-            const scale = 1 - offset * 0.05;
-            const y = offset * 15;
-            // 增加旋转角度，使下层卡片露出边缘，形成滑动引导 (Swipe Guide)
-            const rotate = offset * 3; 
-            const opacity = 1 - offset * 0.2;
-            
-            // 性能优化: 仅渲染视觉可见的前3张卡片
-            if (offset > 2) return null;
+            const offset = activeIndices.length - 1 - i; // 0 = 顶层, 1 = 第二层...
 
             return (
                 <Card 
                     key={story.id}
                     story={story}
-                    index={index}
                     isTop={isTop}
-                    style={{ 
-                        scale, 
-                        y,
-                        rotate, // 传入旋转角度
-                        zIndex: activeIndices.length - offset, // 动态计算层级
-                        opacity 
-                    }}
-                    onSwipe={() => isTop && onSwipe()} // 仅允许顶层卡片触发滑动
+                    offset={offset}
+                    storyCount={stories.length}
+                    sharedDragX={sharedDragX}
+                    zIndex={activeIndices.length - offset}
+                    onSwipe={handleSwipeComplete}
                     onSelect={onSelect}
                 />
             );
         })}
       </div>
       
-      {/* 交互提示 (Hint) */}
       <div className="absolute bottom-4 text-gray-400 text-sm animate-pulse">
         {stories.length > 1 ? "Swipe to browse, Click to read" : "Click to read"}
       </div>
@@ -88,62 +68,121 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBa
 
 interface CardProps {
     story: Story;
-    index: number;
     isTop: boolean;
-    style: any;
+    offset: number;
+    storyCount: number;
+    sharedDragX: MotionValue<number>;
+    zIndex: number;
     onSwipe: () => void;
     onSelect: () => void;
 }
 
-/**
- * 单个卡片组件 (Card)
- * 核心特性: 自适应宽高比 (Adaptive Aspect Ratio)
- */
-function Card({ story, isTop, style, onSwipe, onSelect }: CardProps) {
-    // Motion Values 用于处理拖拽跟随动画
+function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, onSelect }: CardProps) {
+    // 每个卡片拥有独立的 x 位移状态
     const x = useMotionValue(0);
-    const rotate = useTransform(x, [-200, 200], [-10, 10]); // 随拖拽距离旋转
-    const opacity = useTransform(x, [-200, -100, 0, 100, 200], [0, 1, 1, 1, 0]); // 随拖拽距离渐变透明
 
-    // 拖拽结束处理: 如果移动距离超过阈值 (100px)，视为 Swipe 操作
-    const handleDragEnd = (event: any, info: PanInfo) => {
-        if (Math.abs(info.offset.x) > 100) {
+    // 只有顶层卡片负责更新共享的 dragX，从而驱动底层卡片的联动
+    useMotionValueEvent(x, "change", (latest) => {
+        if (isTop) {
+            sharedDragX.set(latest);
+        }
+    });
+
+    // 监听 isTop 变化，实现“回归动画”
+    // 当卡片从 Top 变为非 Top (被划走) 时，它此刻的位置在屏幕外 (fly out distance)
+    // 我们需要将它从屏幕外平滑移动回 x=0，实现“从同方向插入底部”的效果
+    useEffect(() => {
+        if (!isTop && x.get() !== 0) {
+            animate(x, 0, { type: "spring", stiffness: 300, damping: 25 });
+        }
+    }, [isTop, x]);
+
+    // 基础样式计算
+    const isTwoCards = storyCount === 2;
+    const scaleFactor = isTwoCards ? 0.02 : 0.05;
+    const opacityFactor = isTwoCards ? 0.1 : 0.2;
+    
+    const baseScale = 1 - offset * scaleFactor;
+    const baseOpacity = 1 - offset * opacityFactor;
+    const baseY = offset * 15;
+    const baseRotate = offset * 3;
+
+    // --- 联动动画逻辑 ---
+    const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
+    const inputRange = [-screenWidth, 0, screenWidth];
+
+    const animatedScale = useTransform(sharedDragX, inputRange, [1, baseScale, 1]);
+    const animatedOpacity = useTransform(sharedDragX, inputRange, [1, baseOpacity, 1]);
+    const animatedY = useTransform(sharedDragX, inputRange, [0, baseY, 0]);
+    // 只有顶层卡片跟随旋转，底层卡片保持静态或微动
+    const topRotate = useTransform(x, [-200, 200], [-10, 10]);
+
+    // 最终样式组装
+    let style: any = {
+        x: x, // 始终绑定内部 x
+        zIndex
+    };
+
+    if (isTop) {
+        // 顶层卡片: 全尺寸，不透明，旋转跟随拖拽
+        style = { ...style, scale: 1, opacity: 1, y: 0, rotate: topRotate };
+    } else if (offset === 1) {
+        // 第二层卡片: 响应 sharedDragX 实现联动放大/上浮
+        style = { 
+            ...style, 
+            scale: animatedScale, 
+            opacity: animatedOpacity, 
+            y: animatedY,
+            rotate: baseRotate 
+        };
+    } else {
+        // 其他底层卡片: 保持静态 Base 样式
+        style = { 
+            ...style, 
+            scale: baseScale, 
+            opacity: baseOpacity, 
+            y: baseY,
+            rotate: baseRotate 
+        };
+    }
+
+    // 拖拽结束处理
+    const handleDragEnd = async (event: any, info: PanInfo) => {
+        const offsetVal = info.offset.x;
+        const velocity = info.velocity.x;
+        
+        if ((Math.abs(offsetVal) > 100 || Math.abs(velocity) > 500) && storyCount > 1) {
+            const direction = offsetVal > 0 ? 1 : -1;
+            // 播放飞出动画
+            await new Promise<void>(resolve => {
+                animate(x, direction * screenWidth, { 
+                    duration: 0.3, 
+                    ease: "easeIn",
+                    onComplete: () => resolve()
+                });
+            });
             onSwipe();
+        } else {
+            // 回弹
+            animate(x, 0, { type: "spring", stiffness: 300, damping: 20 });
         }
     };
 
     return (
         <motion.div
-            // 样式定义 (Style):
-            // - h-[60vh] & max-h-[600px]: 限制高度，适应视口。
-            // - w-auto: 宽度自动，由内部 img 标签的自然宽高比决定 (实现 Adaptive Ratio)。
-            // - absolute: 绝对定位，确保所有卡片重叠在同一中心点。
             className="absolute h-[60vh] max-h-[600px] w-auto bg-white rounded-xl shadow-2xl cursor-pointer border-[8px] border-white flex-shrink-0"
-            style={{ 
-                ...style,
-                x: isTop ? x : 0, 
-                rotate: isTop ? rotate : style.rotate, // 非顶层卡片使用传入的 rotate 值 (Swipe Guide)
-                opacity: isTop ? opacity : style.opacity
-            }}
-            // 交互定义:
-            drag={isTop ? "x" : false} // 仅允许水平拖拽
-            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }} // 限制回弹
-            dragElastic={0.1} // 增加阻尼感
+            style={style}
+            drag={isTop ? "x" : false}
+            dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+            dragElastic={0.1}
             onDragEnd={handleDragEnd}
             onClick={() => {
-                // 点击判定: 排除拖拽产生的误触 (位移小于 10px 视为点击)
-                if (Math.abs(x.get()) < 10) onSelect();
+                if (isTop && Math.abs(x.get()) < 10) onSelect();
             }}
-            whileHover={isTop ? { scale: 1.02 } : {}} // 鼠标悬停微调
+            whileHover={isTop ? { scale: 1.02 } : {}}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
             <div className="relative h-full w-auto">
-                {/* 
-                  核心图片组件
-                  - 使用原生 <img> 标签而非 NextImage，以便利用其自然宽高比撑开父容器。
-                  - object-cover: 确保填满高度。
-                  - pointer-events-none: 防止图片拖拽干扰卡片拖拽。
-                */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img 
                     src={story.mainImageUrl} 
@@ -151,11 +190,7 @@ function Card({ story, isTop, style, onSwipe, onSelect }: CardProps) {
                     className="h-full w-auto object-cover rounded-sm pointer-events-none select-none block"
                     draggable={false}
                 />
-                
-                {/* 底部黑色渐变遮罩: 增强文字可读性与质感 */}
                 <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent rounded-b-sm" />
-                
-                {/* 角色名标签: 位于卡片左下角 */}
                 <div className="absolute bottom-4 left-4 text-white font-bold text-xl tracking-wider shadow-black/50 drop-shadow-md">
                     {story.characterName}
                 </div>
