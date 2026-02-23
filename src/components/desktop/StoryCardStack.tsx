@@ -100,20 +100,25 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
     // 基础样式计算
     const isTwoCards = storyCount === 2;
     const scaleFactor = isTwoCards ? 0.02 : 0.05;
-    const opacityFactor = isTwoCards ? 0.1 : 0.2;
     
     const baseScale = 1 - offset * scaleFactor;
-    const baseOpacity = 1 - offset * opacityFactor;
     const baseY = offset * 15;
     const baseRotate = offset * 3;
+
+    // 目标状态 (下一层级，即 offset - 1)
+    const targetOffset = Math.max(0, offset - 1);
+    const targetScale = 1 - targetOffset * scaleFactor;
+    const targetY = targetOffset * 15;
+    const targetRotate = targetOffset * 3;
 
     // --- 联动动画逻辑 ---
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1000;
     const inputRange = [-screenWidth, 0, screenWidth];
 
-    const animatedScale = useTransform(sharedDragX, inputRange, [1, baseScale, 1]);
-    const animatedOpacity = useTransform(sharedDragX, inputRange, [1, baseOpacity, 1]);
-    const animatedY = useTransform(sharedDragX, inputRange, [0, baseY, 0]);
+    const animatedScale = useTransform(sharedDragX, inputRange, [targetScale, baseScale, targetScale]);
+    const animatedY = useTransform(sharedDragX, inputRange, [targetY, baseY, targetY]);
+    const animatedRotate = useTransform(sharedDragX, inputRange, [targetRotate, baseRotate, targetRotate]);
+
     // 只有顶层卡片跟随旋转，底层卡片保持静态或微动
     const topRotate = useTransform(x, [-200, 200], [-10, 10]);
 
@@ -126,23 +131,14 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
     if (isTop) {
         // 顶层卡片: 全尺寸，不透明，旋转跟随拖拽
         style = { ...style, scale: 1, opacity: 1, y: 0, rotate: topRotate };
-    } else if (offset === 1) {
-        // 第二层卡片: 响应 sharedDragX 实现联动放大/上浮
+    } else {
+        // 所有底层卡片: 响应 sharedDragX 实现联动放大/上浮/透明度变化
         style = { 
             ...style, 
             scale: animatedScale, 
-            opacity: animatedOpacity, 
+            opacity: 1, 
             y: animatedY,
-            rotate: baseRotate 
-        };
-    } else {
-        // 其他底层卡片: 保持静态 Base 样式
-        style = { 
-            ...style, 
-            scale: baseScale, 
-            opacity: baseOpacity, 
-            y: baseY,
-            rotate: baseRotate 
+            rotate: animatedRotate 
         };
     }
 
