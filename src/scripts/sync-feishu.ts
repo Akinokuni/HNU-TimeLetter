@@ -395,76 +395,96 @@ async function fetchLocations(token: string): Promise<Record<string, { name: str
   }
 }
 
+// 辅助函数：从飞书字段提取文本
+const getText = (field: any): string => {
+  if (!field) return '';
+  if (typeof field === 'string') return field;
+  if (Array.isArray(field) && field.length > 0) {
+    return field.map(item => {
+      if (typeof item === 'string') return item;
+      if (item && typeof item === 'object' && item.text) return item.text;
+      return '';
+    }).join('');
+  }
+  if (typeof field === 'object' && field.text) return field.text;
+  return String(field);
+};
+
 /**
  * 转换飞书数据为本地格式
  */
 async function transformData(token: string, feishuRecords: any[]): Promise<LocationPoint[]> {
   const storiesMap = new Map<string, Story[]>();
   
-  for (const record of feishuRecords) {
-    const fields = record.fields;
+  // 并发控制：每次处理 5 条记录，避免触发限流
+  const BATCH_SIZE = 5;
+  
+  for (let i = 0; i < feishuRecords.length; i += BATCH_SIZE) {
+    const batch = feishuRecords.slice(i, i + BATCH_SIZE);
     
-    // 跳过空记录或未发布的记录
-    if (!fields['角色ID'] || !fields['故事内容']) {
-      continue;
-    }
-
-    // 飞书字段可能返回对象，需要提取文本值
-    const getText = (field: any): string => {
-      if (!field) return '';
-      if (typeof field === 'string') return field;
-      if (Array.isArray(field) && field.length > 0) {
-        return field[0].text || String(field[0]);
-      }
-      if (typeof field === 'object' && field.text) return field.text;
-      return String(field);
-    };
-
-    console.log(`\n📝 处理记录: ${getText(fields['角色名'])} - ${record.record_id}`);
-
-    // 处理图片附件
-    let avatarUrl = getText(fields['头像OSS_URL']);
-    let mainImageUrl = getText(fields['大图OSS_URL']);
-
-    // 如果 OSS URL 不存在，则从附件字段下载并上传
-    if (ossClient) {
-      if (!avatarUrl && fields['头像']) {
-        console.log('  📥 处理头像附件...');
-        avatarUrl = await processAttachment(token, fields['头像'], '头像', record.record_id);
+    await Promise.all(batch.map(async (record) => {
+      const fields = record.fields;
+      
+      // 跳过空记录或未发布的记录
+      if (!fields['角色ID'] || !fields['故事内容']) {
+        return;
       }
 
-      if (!mainImageUrl && fields['大图']) {
-        console.log('  📥 处理大图附件...');
-        mainImageUrl = await processAttachment(token, fields['大图'], '大图', record.record_id);
+      console.log(`\n📝 处理记录: ${getText(fields['角色名'])} - ${record.record_id}`);
+
+      // 处理图片附件
+      let avatarUrl = getText(fields['头像OSS_URL']);
+      let mainImageUrl = getText(fields['大图OSS_URL']);
+      let hasNewUpload = false; // 标记是否有新上传
+
+      // 如果 OSS URL 不存在，则从附件字段下载并上传
+      if (ossClient) {
+        if (!avatarUrl && fields['头像']) {
+          console.log('  📥 处理头像附件...');
+          const newUrl = await processAttachment(token, fields['头像'], '头像', record.record_id);
+          if (newUrl) {
+            avatarUrl = newUrl;
+            hasNewUpload = true;
+          }
+        }
+
+        if (!mainImageUrl && fields['大图']) {
+          console.log('  📥 处理大图附件...');
+          const newUrl = await processAttachment(token, fields['大图'], '大图', record.record_id);
+          if (newUrl) {
+            mainImageUrl = newUrl;
+            hasNewUpload = true;
+          }
+        }
+
+        // 仅在有新上传时回写 OSS URL 到飞书
+        if (hasNewUpload) {
+          await updateRecordOSSUrl(token, record.record_id, avatarUrl, mainImageUrl);
+        }
+      } else {
+        // 如果没有配置 OSS，使用原始 URL 字段
+        if (!avatarUrl) avatarUrl = getText(fields['头像URL']);
+        if (!mainImageUrl) mainImageUrl = getText(fields['大图URL']);
       }
 
-      // 回写 OSS URL 到飞书
-      if (avatarUrl || mainImageUrl) {
-        await updateRecordOSSUrl(token, record.record_id, avatarUrl, mainImageUrl);
+      const story: Story = {
+        id: record.record_id,
+        characterId: getText(fields['角色ID']),
+        characterName: getText(fields['角色名']),
+        avatarUrl,
+        mainImageUrl,
+        content: getText(fields['故事内容']),
+        author: getText(fields['投稿人']),
+        date: getText(fields['日期']),
+        locationId: getText(fields['地点ID']),
+      };
+      
+      const locationId = story.locationId;
+      if (!storiesMap.has(locationId)) {
+        storiesMap.set(locationId, []);
       }
-    } else {
-      // 如果没有配置 OSS，使用原始 URL 字段
-      if (!avatarUrl) avatarUrl = getText(fields['头像URL']);
-      if (!mainImageUrl) mainImageUrl = getText(fields['大图URL']);
-    }
-
-    const story: Story = {
-      id: record.record_id,
-      characterId: getText(fields['角色ID']),
-      characterName: getText(fields['角色名']),
-      avatarUrl,
-      mainImageUrl,
-      content: getText(fields['故事内容']),
-      author: getText(fields['投稿人']),
-      date: getText(fields['日期']),
-      locationId: getText(fields['地点ID']),
-    };
-    
-    const locationId = story.locationId;
-    if (!storiesMap.has(locationId)) {
-      storiesMap.set(locationId, []);
-    }
-    storiesMap.get(locationId)!.push(story);
+      storiesMap.get(locationId)!.push(story);
+    }));
   }
   
   // 聚合为地点数据
@@ -478,11 +498,16 @@ async function transformData(token: string, feishuRecords: any[]): Promise<Locat
 
   allLocationIds.forEach((locationId) => {
     const stories = storiesMap.get(locationId) || [];
-    const coords = LOCATION_COORDS[locationId] || {
-      name: stories[0]?.locationId || locationId,
-      x: 50,
-      y: 50,
-    };
+    let coords = LOCATION_COORDS[locationId];
+
+    if (!coords) {
+        console.warn(`⚠️ 警告: 地点ID '${locationId}' 未在配置中找到，将使用默认坐标 (50, 50)`);
+        coords = {
+            name: stories[0]?.locationId || locationId,
+            x: 50,
+            y: 50,
+        };
+    }
 
     locations.push({
       id: locationId,

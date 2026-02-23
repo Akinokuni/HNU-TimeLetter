@@ -27,6 +27,17 @@
           "author": "投稿者B",
           "date": "2024.06.20",
           "locationId": "lib-001"
+        },
+        {
+          "id": "recvc2oIEn25q0",
+          "characterId": "char-002",
+          "characterName": "樱井美咲",
+          "avatarUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/f7b72a9728be07e2fe0261ab61c1f899.png",
+          "mainImageUrl": "https://himematsu.oss-cn-guangzhou.aliyuncs.com/hnu-timeletter/0c3e5cf63fae197edb515906215d0d43.png",
+          "content": "修改唯一性：任何一项技术细节、业务规则或架构方案发生变更时，在整个文档库中仅需修改一个文件，无需全局搜索和批量替换。\n状态纯粹性：静态的“功能设计文档”中绝对不包含任何进度状态，所有“已完成”、“开发中”等动态信息完全隔离在唯一的进度文件（如 PROGRESS.md）里。\n引用替代复制：文档之间不存在大段重复的文字或步骤，所有共用的概念、规范或模块，全部通过相对路径链接进行相互引用。\n无冲突溯源：无论是人类开发者还是 AI 助手，在查阅某个特定概念时，只能找到唯一且明确的定义出处，不会出现两个文件描述不一致的情况。",
+          "author": "233",
+          "date": "2026年2月23日",
+          "locationId": "lib-001"
         }
       ]
     },
