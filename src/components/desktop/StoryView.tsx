@@ -39,8 +39,7 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
             if (first !== undefined) newIndices.push(first);
             return newIndices;
         });
-        // 切换卡片后，默认隐藏文本详情，恢复纯享模式
-        setIsTextVisible(false);
+        // 保持文本显示状态，实现内容无缝切换
     };
 
     // 处理卡片点击 (Select) 事件
@@ -49,12 +48,15 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
         setIsTextVisible(!isTextVisible);
     };
 
-    // 滚轮/触摸板滑动处理: 在顶部向下滑动 (Scroll Up) 时返回地图
+    // 滚轮/触摸板滑动处理: 在底部向下滑动 (Scroll Down) 时返回地图
     const handleWheel = (e: React.WheelEvent) => {
         const container = e.currentTarget;
-        // 如果在顶部 (scrollTop === 0) 且 向上滚动 (deltaY < 0)
-        // 使用 -30 作为阈值防止误触
-        if (container.scrollTop === 0 && e.deltaY < -30) {
+        // 检查是否滚动到底部
+        const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 2;
+        
+        // 如果在底部 且 向下滚动 (deltaY > 0)
+        // 使用 30 作为阈值防止误触
+        if (isAtBottom && e.deltaY > 30) {
             onBack();
         }
     };
@@ -63,9 +65,12 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
         <div 
             className="w-full h-full flex flex-col items-center pt-10 overflow-y-auto pb-20 no-scrollbar"
             onWheel={handleWheel}
+            onClick={() => setIsTextVisible(false)} // 点击空白处关闭文本区
         >
             {/* 上部: 故事卡片堆叠区 */}
-            <div className="w-full flex-shrink-0">
+            <div 
+                className="w-full flex-shrink-0"
+            >
                 <StoryCardStack 
                     stories={stories} 
                     activeIndices={activeIndices}
@@ -79,7 +84,9 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
               下部: 故事文本详情区 
               使用负 margin (mt-[-50px]) 使其在视觉上更靠近卡片，形成连接感
             */}
-            <div className="w-full flex-shrink-0 px-4 mt-[-50px] z-10">
+            <div 
+                className="w-full flex-shrink-0 px-4 mt-[-50px] z-10"
+            >
                  <StoryTextArea story={topStory} isVisible={isTextVisible} />
             </div>
         </div>

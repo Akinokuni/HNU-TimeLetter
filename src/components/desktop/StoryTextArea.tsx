@@ -34,6 +34,7 @@ export function StoryTextArea({ story, isVisible }: StoryTextAreaProps) {
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
           className="relative w-full max-w-2xl mx-auto mt-8 p-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100"
+          onClick={(e) => e.stopPropagation()}
         >
             {/* 
               静态邮票 (Static Stamp)

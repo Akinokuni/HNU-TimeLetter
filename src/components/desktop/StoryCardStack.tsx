@@ -176,7 +176,8 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
             dragElastic={0.1}
             onDragEnd={handleDragEnd}
-            onClick={() => {
+            onClick={(e) => {
+                e.stopPropagation();
                 if (isTop && Math.abs(x.get()) < 10) onSelect();
             }}
             whileHover={isTop ? { scale: 1.02 } : {}}

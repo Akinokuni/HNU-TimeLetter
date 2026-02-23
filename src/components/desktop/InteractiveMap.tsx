@@ -24,12 +24,12 @@ export function InteractiveMap() {
       
       {/* 
         地图层容器
-        交互逻辑: 当 activeLocation 存在时，整体向上平移 100% (translateY(-100%))
-        视觉效果: 模拟视口向下移动，进入下方的故事层
+        交互逻辑: 当 activeLocation 存在时，整体向下平移 100% (translateY(100%))
+        视觉效果: 模拟视口向上移动，进入上方的故事层
       */}
       <div 
         className="relative w-full h-full transition-transform duration-700 ease-in-out"
-        style={{ transform: activeLocation ? 'translateY(-100%)' : 'translateY(0)' }}
+        style={{ transform: activeLocation ? 'translateY(100%)' : 'translateY(0)' }}
       >
         {/* 底图: 强制包含模式，确保完整显示 */}
         <Image 
@@ -88,12 +88,12 @@ export function InteractiveMap() {
 
       {/* 
         故事层容器 (StoryCardStack & TextArea)
-        布局: 位于地图层正下方 (top-full)
-        交互: 随地图层同步向上平移，覆盖当前视口
+        布局: 位于地图层正上方 (-top-full)
+        交互: 随地图层同步向下平移，覆盖当前视口
       */}
       <div 
-        className="absolute inset-0 top-full h-screen w-full bg-[#fdfbf7] z-20 transition-transform duration-700 ease-in-out"
-        style={{ transform: activeLocation ? 'translateY(-100%)' : 'translateY(0)' }}
+        className="absolute inset-0 -top-full h-screen w-full bg-[#fdfbf7] z-20 transition-transform duration-700 ease-in-out"
+        style={{ transform: activeLocation ? 'translateY(100%)' : 'translateY(0)' }}
       >
          {/* 仅在激活时渲染子组件，保持性能 */}
          {activeLocation && (
