@@ -187,10 +187,7 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
                     className="h-full w-auto object-cover rounded-sm pointer-events-none select-none block"
                     draggable={false}
                 />
-                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/40 to-transparent rounded-b-sm" />
-                <div className="absolute bottom-4 left-4 text-white font-bold text-xl tracking-wider shadow-black/50 drop-shadow-md">
-                    {story.characterName}
-                </div>
+                
             </div>
         </motion.div>
     );

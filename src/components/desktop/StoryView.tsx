@@ -63,7 +63,7 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
 
     return (
         <div 
-            className="w-full h-full flex flex-col items-center pt-10 overflow-y-auto pb-20 no-scrollbar"
+            className="w-full h-full flex flex-col items-center pt-10 overflow-y-auto pb-20 no-scrollbar select-none"
             onWheel={handleWheel}
             onClick={() => setIsTextVisible(false)} // 点击空白处关闭文本区
         >

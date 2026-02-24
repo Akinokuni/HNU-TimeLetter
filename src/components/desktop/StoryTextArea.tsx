@@ -33,7 +33,7 @@ export function StoryTextArea({ story, isVisible }: StoryTextAreaProps) {
           // 退场动画: 向上方 20px 处淡出
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.5, ease: "easeOut" }}
-          className="relative w-full max-w-2xl mx-auto mt-8 p-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100"
+          className="relative w-full max-w-2xl mx-auto mt-8 p-8 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-100 select-none"
           onClick={(e) => e.stopPropagation()}
         >
             {/* 
