@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import data from '@/data/content.json';
 import { StoryView } from './StoryView';
@@ -18,6 +18,37 @@ import { LocationPoint } from '@/lib/types';
 export function InteractiveMap() {
   // 当前激活的地点 (用于控制视口流转)
   const [activeLocation, setActiveLocation] = useState<LocationPoint | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
+  const [mapAspect, setMapAspect] = useState<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (!mapAspect) return;
+    const container = mapContainerRef.current;
+    if (!container) return;
+
+    const updateSize = () => {
+      const { width, height } = container.getBoundingClientRect();
+      if (!width || !height) return;
+
+      const containerAspect = width / height;
+      if (containerAspect > mapAspect) {
+        const h = height;
+        const w = h * mapAspect;
+        setMapSize({ width: w, height: h });
+      } else {
+        const w = width;
+        const h = w / mapAspect;
+        setMapSize({ width: w, height: h });
+      }
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(container);
+
+    return () => observer.disconnect();
+  }, [mapAspect]);
 
   return (
     <div className="relative w-full h-screen bg-[#fdfbf7] overflow-hidden">
@@ -31,59 +62,60 @@ export function InteractiveMap() {
         className="relative w-full h-full transition-transform duration-700 ease-in-out"
         style={{ transform: activeLocation ? 'translateY(100%)' : 'translateY(0)' }}
       >
-        {/* 底图: 强制包含模式，确保完整显示 */}
-        <Image 
-          src="/images/map.svg"
-          alt="HNU Map"
-          fill 
-          className="object-contain"
-          priority
-        />
+        <div className="relative w-full h-full" ref={mapContainerRef}>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative" style={{ width: mapSize.width, height: mapSize.height }}>
+              <Image 
+                src="/images/map.svg"
+                alt="HNU Map"
+                fill 
+                className="object-contain"
+                priority
+                onLoadingComplete={(img) => {
+                  if (img.naturalWidth && img.naturalHeight) {
+                    setMapAspect(img.naturalWidth / img.naturalHeight);
+                  }
+                }}
+              />
 
-        {/* 遍历渲染地点坐标点 (Pin System) */}
-        {data.locations.map((loc) => {
-          // 获取该地点的最新一个故事（用于显示头像）
-          const latestStory = loc.stories[0];
-          if (!latestStory) return null;
+              {data.locations.map((loc) => {
+                const latestStory = loc.stories[0];
+                if (!latestStory) return null;
 
-          return (
-            <div
-              key={loc.id}
-              className="absolute cursor-pointer group"
-              style={{
-                // 坐标系统: 使用百分比定位，适应不同屏幕尺寸
-                left: `${loc.x}%`,
-                top: `${loc.y}%`,
-                transform: 'translate(-50%, -50%)' // 修正中心点
-              }}
-              onClick={() => setActiveLocation(loc)}
-            >
-              {/* 
-                Pin 点交互设计 (文档 2.2)
-                - 默认: 半透明 (opacity-90)
-                - Hover: 不透明 + 放大 (scale-110) + 轻微跳动 (-translate-y-2)
-              */}
-              <div className="w-12 h-12 rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white opacity-90 hover:opacity-100 hover:scale-110 hover:-translate-y-2 transition-all duration-300 relative z-10">
-                <Image 
-                  src={latestStory.avatarUrl} 
-                  alt={latestStory.characterName} 
-                  width={48} 
-                  height={48} 
-                  className="object-cover"
-                  unoptimized
-                />
-              </div>
+                return (
+                  <div
+                    key={loc.id}
+                    className="absolute cursor-pointer group"
+                    style={{
+                      left: `${loc.x}%`,
+                      top: `${loc.y}%`,
+                      transform: 'translate(-50%, -50%)'
+                    }}
+                    onClick={() => setActiveLocation(loc)}
+                  >
+                    <div className="w-12 h-12 rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white opacity-90 hover:opacity-100 hover:scale-110 hover:-translate-y-2 transition-all duration-300 relative z-10">
+                      <Image 
+                        src={latestStory.avatarUrl} 
+                        alt={latestStory.characterName} 
+                        width={48} 
+                        height={48} 
+                        className="object-cover"
+                        unoptimized
+                      />
+                    </div>
 
-              {/* Tooltip: 悬浮显示地点名称 */}
-              <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-sm px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none z-20">
-                {loc.name}
-                {loc.stories.length > 1 && (
-                  <span className="ml-1 text-xs text-gray-300">({loc.stories.length})</span>
-                )}
-              </div>
+                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-sm px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none z-20">
+                      {loc.name}
+                      {loc.stories.length > 1 && (
+                        <span className="ml-1 text-xs text-gray-300">({loc.stories.length})</span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
+          </div>
+        </div>
       </div>
 
       {/* 

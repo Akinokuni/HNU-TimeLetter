@@ -12,15 +12,20 @@
 
 - **布局实现**:
   - 容器: Flex/Grid 居中，高度强制 `h-screen`，宽度 `w-full`。
-  - 图片: 使用 Next.js `<Image>`，设置 `object-fit: contain`。
-  - 坐标系: 建立 `relative` 容器包裹图片，Pin 点基于此容器 `absolute` 定位。
+  - **动态容器计算**: 为了避免 `object-fit: contain` 在非标准比例窗口下产生的留白导致坐标偏移，需要使用 `ResizeObserver` 计算**实际渲染地图**的尺寸。
+  - 图片: 使用 Next.js `<Image>`，监听 `onLoadingComplete` 获取实际宽高比，不再硬编码比例。
+  - 坐标系: 建立一个与“实际渲染地图”等大的 `relative` 内部容器，Pin 点基于此容器 `absolute` 定位。
 
 - **坐标点系统 (Pin System)**:
   - **数据源**: 读取 `LocationPoint[]`，使用百分比坐标 (`x`, `y`)。
   - **渲染逻辑**:
     ```tsx
-    <div style={{ left: `${loc.x}%`, top: `${loc.y}%` }} className="absolute ...">
-      <MapPin data={loc} />
+    <div style={{ width: mapSize.width, height: mapSize.height }} className="relative ...">
+      <Image ... />
+      {/* 坐标点基于实际地图尺寸定位 */}
+      <div style={{ left: `${loc.x}%`, top: `${loc.y}%` }} className="absolute ...">
+        <MapPin data={loc} />
+      </div>
     </div>
     ```
   - **交互**: 
