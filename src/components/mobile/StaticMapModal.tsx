@@ -92,6 +92,7 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
                         fill
                         className="object-contain"
                         priority
+                        sizes="100vw"
                         onLoadingComplete={(img) => {
                           if (img.naturalWidth && img.naturalHeight) {
                             setMapAspect(img.naturalWidth / img.naturalHeight);
@@ -120,6 +121,7 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
                                 width={32} 
                                 height={32} 
                                 className="object-cover"
+                                sizes="32px"
                               />
                             </div>
                           </div>
