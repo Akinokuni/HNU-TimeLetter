@@ -380,12 +380,12 @@ async function fetchLocations(token: string): Promise<Record<string, { name: str
       console.log(`🔍 飞书返回了 ${data.data.items.length} 条地点记录`);
       (data.data.items as FeishuRecord[]).forEach((item) => {
         const fields = item.fields;
-        const id = fields['地点ID'];
+        const id = getText(fields['地点ID']);
         console.log(`  - 记录ID: ${item.record_id}, 地点ID: ${id}, 名称: ${fields['地点名称']}`);
-        
+
         if (id) {
           newLocations[id] = {
-            name: fields['地点名称'] || '',
+            name: getText(fields['地点名称']),
             x: Number(fields['坐标X(%)']) || 0,
             y: Number(fields['坐标Y(%)']) || 0,
           };
@@ -418,7 +418,10 @@ const getText = (field: unknown): string => {
       return '';
     }).join('');
   }
-  if (typeof field === 'object' && field.text) return field.text;
+  if (typeof field === 'object' && field !== null && 'text' in field) {
+    const text = (field as { text?: unknown }).text;
+    return typeof text === 'string' ? text : '';
+  }
   return String(field);
 };
 

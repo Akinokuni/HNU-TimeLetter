@@ -156,7 +156,7 @@ export function MobileDetailModal({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <Image src={story.mainImageUrl} alt={story.characterName} fill className="object-cover" priority unoptimized />
+                <Image src={story.mainImageUrl} alt={story.characterName} fill className="object-cover" priority sizes="100vw" />
               </motion.div>
             </AnimatePresence>
 
@@ -187,7 +187,7 @@ export function MobileDetailModal({
           >
             <div className="flex items-center gap-5 mb-8">
               <motion.div key={`avatar-${story.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-16 h-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex-shrink-0">
-                <Image src={story.avatarUrl} alt={story.characterName} fill className="object-cover" unoptimized />
+                <Image src={story.avatarUrl} alt={story.characterName} fill className="object-cover" sizes="64px" />
               </motion.div>
               <div className="flex flex-col">
                 <h2 className="text-2xl font-serif text-stone-800 tracking-tight mb-2">{story.characterName}</h2>

@@ -120,7 +120,6 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
                                 width={32} 
                                 height={32} 
                                 className="object-cover"
-                                unoptimized
                               />
                             </div>
                           </div>

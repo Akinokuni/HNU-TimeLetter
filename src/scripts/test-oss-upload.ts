@@ -53,7 +53,8 @@ async function main() {
     // 测试文件是否存在
     console.log('\n🔍 验证文件是否存在...');
     const headResult = await client.head(ossPath);
-    console.log('✅ 文件存在，大小:', headResult.res.headers['content-length'], 'bytes');
+    const contentLength = (headResult.res.headers as Record<string, unknown>)['content-length'];
+    console.log('✅ 文件存在，大小:', contentLength, 'bytes');
 
     console.log('\n✨ OSS 测试完成！');
 

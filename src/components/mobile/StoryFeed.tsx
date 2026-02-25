@@ -45,7 +45,6 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
             fill
             className="object-cover"
             sizes="(max-width: 768px) 50vw, 33vw"
-            unoptimized
           />
         </motion.div>
       </div>
@@ -58,7 +57,7 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
               alt={story.characterName}
               fill
               className="object-cover"
-              unoptimized
+              sizes="20px"
             />
           </div>
           <span className="text-[10px] text-stone-400 font-serif truncate">
