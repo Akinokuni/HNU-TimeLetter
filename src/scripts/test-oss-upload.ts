@@ -57,10 +57,14 @@ async function main() {
 
     console.log('\n✨ OSS 测试完成！');
 
-  } catch (error: any) {
-    console.error('\n❌ 测试失败:', error.message);
-    if (error.code) {
-      console.error('错误代码:', error.code);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('\n❌ 测试失败:', error.message);
+      if ('code' in error) {
+        console.error('错误代码:', (error as Error & { code?: string }).code);
+      }
+    } else {
+      console.error('\n❌ 测试失败:', error);
     }
     process.exit(1);
   }

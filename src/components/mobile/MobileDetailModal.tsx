@@ -56,6 +56,7 @@ export function MobileDetailModal({
   // 控制箭头显示状态
   const [controlsVisible, setControlsVisible] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const touchStartXRef = useRef<number | null>(null);
 
   // 1s 自动淡出逻辑
   useEffect(() => {
@@ -170,12 +171,18 @@ export function MobileDetailModal({
           <div 
             className="px-8 pt-8 pb-32 flex flex-col"
             onTouchStart={(e) => {
-              (window as any).startX = e.touches[0].clientX;
+              touchStartXRef.current = e.touches[0]?.clientX ?? null;
             }}
             onTouchEnd={(e) => {
-              const deltaX = e.changedTouches[0].clientX - (window as any).startX;
+              const startX = touchStartXRef.current;
+              const endX = e.changedTouches[0]?.clientX;
+              if (startX == null || endX == null) return;
+
+              const deltaX = endX - startX;
               if (deltaX > 80 && hasPrevLocation && onPrevLocation) onPrevLocation();
               else if (deltaX < -80 && hasMoreLocation && onNextLocation) onNextLocation();
+
+              touchStartXRef.current = null;
             }}
           >
             <div className="flex items-center gap-5 mb-8">

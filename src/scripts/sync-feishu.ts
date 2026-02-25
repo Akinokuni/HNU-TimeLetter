@@ -37,6 +37,18 @@ const OSS_ACCESS_KEY_SECRET = process.env.ALIYUN_OSS_ACCESS_KEY_SECRET;
 // 地点坐标配置（从配置文件读取，后续会被飞书数据覆盖）
 let LOCATION_COORDS: Record<string, { name: string; x: number; y: number }> = locationsConfig;
 
+type FeishuAttachment = {
+  file_token?: string;
+  token?: string;
+  name?: string;
+};
+
+type FeishuRecord = {
+  record_id: string;
+  fields: Record<string, unknown>;
+};
+
+
 // 初始化 OSS 客户端
 let ossClient: OSS | null = null;
 if (OSS_REGION && OSS_BUCKET && OSS_ACCESS_KEY_ID && OSS_ACCESS_KEY_SECRET) {
@@ -117,9 +129,9 @@ async function uploadToOSS(buffer: Buffer, fileName: string): Promise<{ url: str
     try {
       await ossClient.head(ossPath);
       console.log(`  ⏭️  文件已存在，跳过上传: ${ossPath}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // 文件不存在，执行上传
-      if (error.code === 'NoSuchKey') {
+      if (error instanceof Error && 'code' in error && error.code === 'NoSuchKey') {
         await ossClient.put(ossPath, buffer);
         console.log(`  ✅ 上传成功: ${ossPath}`);
       } else {
@@ -203,7 +215,7 @@ async function recordOSSFile(
  */
 async function processAttachment(
   token: string,
-  attachmentField: any,
+  attachmentField: unknown,
   usage: string,
   recordId: string
 ): Promise<string> {
@@ -211,7 +223,7 @@ async function processAttachment(
     return '';
   }
 
-  const firstAttachment = attachmentField[0];
+  const firstAttachment = attachmentField[0] as FeishuAttachment;
   const fileToken = firstAttachment.file_token || firstAttachment.token;
   const fileName = firstAttachment.name || 'image.jpg';
   
@@ -276,19 +288,19 @@ async function updateRecordOSSUrl(
 /**
  * 从飞书拉取记录（使用搜索接口）
  */
-async function fetchFeishuRecords(token: string): Promise<any[]> {
+async function fetchFeishuRecords(token: string): Promise<FeishuRecord[]> {
   if (!FEISHU_APP_TOKEN || !FEISHU_TABLE_ID) {
     throw new Error('缺少飞书表格配置');
   }
 
   const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records/search`;
 
-  let allItems: any[] = [];
+  const allItems: FeishuRecord[] = [];
   let hasMore = true;
   let pageToken = '';
 
   while (hasMore) {
-    const body: any = {
+    const body: Record<string, unknown> = {
       page_size: 500,
     };
 
@@ -366,7 +378,7 @@ async function fetchLocations(token: string): Promise<Record<string, { name: str
     
     if (data.data.items) {
       console.log(`🔍 飞书返回了 ${data.data.items.length} 条地点记录`);
-      data.data.items.forEach((item: any) => {
+      (data.data.items as FeishuRecord[]).forEach((item) => {
         const fields = item.fields;
         const id = fields['地点ID'];
         console.log(`  - 记录ID: ${item.record_id}, 地点ID: ${id}, 名称: ${fields['地点名称']}`);
@@ -396,7 +408,7 @@ async function fetchLocations(token: string): Promise<Record<string, { name: str
 }
 
 // 辅助函数：从飞书字段提取文本
-const getText = (field: any): string => {
+const getText = (field: unknown): string => {
   if (!field) return '';
   if (typeof field === 'string') return field;
   if (Array.isArray(field) && field.length > 0) {
@@ -413,7 +425,7 @@ const getText = (field: any): string => {
 /**
  * 转换飞书数据为本地格式
  */
-async function transformData(token: string, feishuRecords: any[]): Promise<LocationPoint[]> {
+async function transformData(token: string, feishuRecords: FeishuRecord[]): Promise<LocationPoint[]> {
   const storiesMap = new Map<string, Story[]>();
   
   // 并发控制：每次处理 5 条记录，避免触发限流

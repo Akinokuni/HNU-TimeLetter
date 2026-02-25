@@ -51,7 +51,7 @@ async function createField(token: string, fieldName: string, fieldType: number) 
 }
 
 // 添加记录
-async function addRecord(token: string, fields: Record<string, any>) {
+async function addRecord(token: string, fields: Record<string, unknown>) {
   const url = `https://open.feishu.cn/open-apis/bitable/v1/apps/${FEISHU_APP_TOKEN}/tables/${FEISHU_TABLE_ID}/records`;
   
   const res = await fetch(url, {
