@@ -71,6 +71,7 @@ export function InteractiveMap() {
                 fill 
                 className="object-contain"
                 priority
+                sizes="100vw"
                 onLoadingComplete={(img) => {
                   if (img.naturalWidth && img.naturalHeight) {
                     setMapAspect(img.naturalWidth / img.naturalHeight);
@@ -100,7 +101,7 @@ export function InteractiveMap() {
                         width={48} 
                         height={48} 
                         className="object-cover"
-                        unoptimized
+                        sizes="48px"
                       />
                     </div>
 

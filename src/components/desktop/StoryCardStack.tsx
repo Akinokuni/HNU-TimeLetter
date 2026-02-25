@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValue, useTransform, PanInfo, animate, MotionValue, useMotionValueEvent } from 'framer-motion';
+import { motion, useMotionValue, useTransform, PanInfo, animate, MotionValue, useMotionValueEvent, MotionStyle } from 'framer-motion';
 import { Story } from '@/lib/types';
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
@@ -123,7 +123,7 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
     const topRotate = useTransform(x, [-200, 200], [-10, 10]);
 
     // 最终样式组装
-    let style: any = {
+    let style: MotionStyle = {
         x: x, // 始终绑定内部 x
         zIndex
     };
@@ -143,7 +143,7 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
     }
 
     // 拖拽结束处理
-    const handleDragEnd = async (event: any, info: PanInfo) => {
+    const handleDragEnd = async (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
         const offsetVal = info.offset.x;
         const velocity = info.velocity.x;
         

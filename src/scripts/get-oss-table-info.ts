@@ -10,6 +10,12 @@ const FEISHU_APP_SECRET = process.env.FEISHU_APP_SECRET;
 const FEISHU_APP_TOKEN = process.env.FEISHU_APP_TOKEN;
 const OSS_TABLE_ID = 'tblwLUNdWNzv1kZw'; // OSS 文件记录表
 
+type FeishuField = {
+  field_id: string;
+  field_name: string;
+  type: number;
+};
+
 async function getTenantToken(appId: string, appSecret: string): Promise<string> {
   const url = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal";
   const res = await fetch(url, {
@@ -56,7 +62,7 @@ async function main() {
     
     console.log("✅ 成功获取字段信息!\n");
     console.log("📋 字段列表:");
-    result.data?.items?.forEach((field: any) => {
+    (result.data?.items as FeishuField[] | undefined)?.forEach((field) => {
       console.log(`  - ${field.field_name} (${field.type}) [ID: ${field.field_id}]`);
     });
 

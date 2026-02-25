@@ -49,6 +49,7 @@ export function StoryTextArea({ story, isVisible }: StoryTextAreaProps) {
                             alt={story.characterName}
                             fill
                             className="object-cover"
+                            sizes="80px"
                         />
                     </div>
                 </div>
