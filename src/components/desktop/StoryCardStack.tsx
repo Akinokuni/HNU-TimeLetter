@@ -2,7 +2,6 @@
 
 import { motion, useMotionValue, useTransform, PanInfo, animate, MotionValue, useMotionValueEvent, MotionStyle } from 'framer-motion';
 import { Story } from '@/lib/types';
-import { ChevronDown } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo } from 'react';
 
 interface StoryCardStackProps {
@@ -10,10 +9,9 @@ interface StoryCardStackProps {
   activeIndices: number[]; // 当前卡片堆叠顺序 (索引数组)
   onSwipe: () => void;     // 触发“滑动”事件 (切换下一张)
   onSelect: () => void;    // 触发“点击”事件 (查看/隐藏详情)
-  onBack: () => void;      // 返回地图视图
 }
 
-export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBack }: StoryCardStackProps) {
+export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect }: StoryCardStackProps) {
   const normalizedIndices = useMemo(
     () => activeIndices.filter((index) => index >= 0 && index < stories.length),
     [activeIndices, stories.length]
@@ -46,16 +44,6 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBa
 
   return (
     <div className="relative w-full h-[60vh] flex items-center justify-center">
-        {/* 返回按钮 */}
-        <button 
-            onClick={onBack}
-            className="absolute top-4 left-4 z-50 p-2 bg-white/80 rounded-full shadow-md hover:bg-white transition-colors cursor-pointer pointer-events-auto"
-            aria-label="滚动到地图区域"
-            title="滚动到地图区域"
-        >
-            <ChevronDown size={24} />
-        </button>
-
       <div className="relative w-full h-full flex items-center justify-center">
         {reversedIndices.map((index, i) => {
             const isTop = index === topIndex;
@@ -213,15 +201,4 @@ function CardComponent({ story, isTop, offset, storyCount, sharedDragX, zIndex, 
     );
 }
 
-const Card = memo(CardComponent, (prev, next) => {
-  return (
-    prev.story.id === next.story.id &&
-    prev.isTop === next.isTop &&
-    prev.offset === next.offset &&
-    prev.storyCount === next.storyCount &&
-    prev.zIndex === next.zIndex &&
-    prev.onSwipe === next.onSwipe &&
-    prev.onSelect === next.onSelect &&
-    prev.sharedDragX === next.sharedDragX
-  );
-});
+const Card = memo(CardComponent);

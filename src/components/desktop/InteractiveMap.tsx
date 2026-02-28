@@ -19,10 +19,16 @@ export function InteractiveMap() {
   // 当前激活的地点 (用于渲染故事区内容)
   const [activeLocation, setActiveLocation] = useState<LocationPoint | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapSectionRef = useRef<HTMLDivElement | null>(null);
   const storySectionRef = useRef<HTMLDivElement | null>(null);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [mapAspect, setMapAspect] = useState<number | null>(null);
+
+  const getScrollBehavior = (): ScrollBehavior => {
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return 'auto';
+    }
+    return 'smooth';
+  };
 
   useLayoutEffect(() => {
     if (!mapAspect) return;
@@ -56,17 +62,10 @@ export function InteractiveMap() {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         storySectionRef.current?.scrollIntoView({
-          behavior: 'smooth',
+          behavior: getScrollBehavior(),
           block: 'start'
         });
       });
-    });
-  };
-
-  const scrollToMapSection = () => {
-    mapSectionRef.current?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start'
     });
   };
 
@@ -82,12 +81,11 @@ export function InteractiveMap() {
           <StoryView
             key={activeLocation.id}
             stories={activeLocation.stories}
-            onBack={scrollToMapSection}
           />
         )}
       </section>
 
-      <section ref={mapSectionRef} className="relative w-full h-screen overflow-hidden">
+      <section className="relative w-full h-screen overflow-hidden">
         <div className="relative w-full h-full" ref={mapContainerRef}>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative" style={{ width: mapSize.width, height: mapSize.height }}>
