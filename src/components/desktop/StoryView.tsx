@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Story } from '@/lib/types';
 import { StoryCardStack } from './StoryCardStack';
 import { StoryTextArea } from './StoryTextArea';
@@ -26,12 +26,18 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
     // 状态管理: 是否显示当前故事的文本详情
     const [isTextVisible, setIsTextVisible] = useState(false);
 
+    // 切换地点时重置卡堆顺序与文本显示状态
+    useEffect(() => {
+        setActiveIndices(stories.map((_, i) => i));
+        setIsTextVisible(false);
+    }, [stories]);
+
     // 获取当前顶层故事
     const topIndex = activeIndices[0];
     const topStory = stories[topIndex];
 
     // 处理卡片滑动 (Swipe) 事件
-    const handleSwipe = () => {
+    const handleSwipe = useCallback(() => {
         // 逻辑: 将顶层卡片索引移至队尾 (实现循环播放)
         setActiveIndices((prev) => {
             const newIndices = [...prev];
@@ -40,31 +46,17 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
             return newIndices;
         });
         // 保持文本显示状态，实现内容无缝切换
-    };
+    }, []);
 
     // 处理卡片点击 (Select) 事件
-    const handleSelect = () => {
+    const handleSelect = useCallback(() => {
         // 逻辑: 切换文本显示状态 (Toggle)
-        setIsTextVisible(!isTextVisible);
-    };
-
-    // 滚轮/触摸板滑动处理: 在底部向下滑动 (Scroll Down) 时返回地图
-    const handleWheel = (e: React.WheelEvent) => {
-        const container = e.currentTarget;
-        // 检查是否滚动到底部
-        const isAtBottom = Math.abs(container.scrollHeight - container.scrollTop - container.clientHeight) < 2;
-        
-        // 如果在底部 且 向下滚动 (deltaY > 0)
-        // 使用 30 作为阈值防止误触
-        if (isAtBottom && e.deltaY > 30) {
-            onBack();
-        }
-    };
+        setIsTextVisible((prev) => !prev);
+    }, []);
 
     return (
         <div 
-            className="w-full h-full flex flex-col items-center pt-10 overflow-y-auto pb-20 no-scrollbar select-none"
-            onWheel={handleWheel}
+            className="w-full min-h-screen flex flex-col items-center pt-10 pb-20 select-none"
             onClick={() => setIsTextVisible(false)} // 点击空白处关闭文本区
         >
             {/* 上部: 故事卡片堆叠区 */}
@@ -89,6 +81,13 @@ export function StoryView({ stories, onBack }: StoryViewProps) {
             >
                  <StoryTextArea story={topStory} isVisible={isTextVisible} />
             </div>
+
+            {/* 文本未展开时预留底部留白，避免地图紧贴进入故事区 */}
+            <div
+                className={`w-full flex-shrink-0 transition-[height] duration-300 ${
+                    isTextVisible ? 'h-8' : 'h-28 md:h-40 lg:h-48'
+                }`}
+            />
         </div>
     );
 }

@@ -16,9 +16,11 @@ import { LocationPoint } from '@/lib/types';
  * 3. 点击 Pin 点触发视口切换 (进入 StoryView)。
  */
 export function InteractiveMap() {
-  // 当前激活的地点 (用于控制视口流转)
+  // 当前激活的地点 (用于渲染故事区内容)
   const [activeLocation, setActiveLocation] = useState<LocationPoint | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapSectionRef = useRef<HTMLDivElement | null>(null);
+  const storySectionRef = useRef<HTMLDivElement | null>(null);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [mapAspect, setMapAspect] = useState<number | null>(null);
 
@@ -50,18 +52,42 @@ export function InteractiveMap() {
     return () => observer.disconnect();
   }, [mapAspect]);
 
+  const scrollToStorySection = () => {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        storySectionRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+      });
+    });
+  };
+
+  const scrollToMapSection = () => {
+    mapSectionRef.current?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  };
+
+  const handleLocationSelect = (location: LocationPoint) => {
+    setActiveLocation(location);
+    scrollToStorySection();
+  };
+
   return (
-    <div className="relative w-full h-screen bg-[#fdfbf7] overflow-hidden">
-      
-      {/* 
-        地图层容器
-        交互逻辑: 当 activeLocation 存在时，整体向下平移 100% (translateY(100%))
-        视觉效果: 模拟视口向上移动，进入上方的故事层
-      */}
-      <div 
-        className="relative w-full h-full transition-transform duration-700 ease-in-out"
-        style={{ transform: activeLocation ? 'translateY(100%)' : 'translateY(0)' }}
-      >
+    <div className="relative w-full bg-[#fdfbf7]">
+      <section ref={storySectionRef} className="w-full">
+        {activeLocation && (
+          <StoryView
+            key={activeLocation.id}
+            stories={activeLocation.stories}
+            onBack={scrollToMapSection}
+          />
+        )}
+      </section>
+
+      <section ref={mapSectionRef} className="relative w-full h-screen overflow-hidden">
         <div className="relative w-full h-full" ref={mapContainerRef}>
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="relative" style={{ width: mapSize.width, height: mapSize.height }}>
@@ -92,7 +118,7 @@ export function InteractiveMap() {
                       top: `${loc.y}%`,
                       transform: 'translate(-50%, -50%)'
                     }}
-                    onClick={() => setActiveLocation(loc)}
+                    onClick={() => handleLocationSelect(loc)}
                   >
                     <div className="w-12 h-12 rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white opacity-90 hover:opacity-100 hover:scale-110 hover:-translate-y-2 transition-all duration-300 relative z-10">
                       <Image 
@@ -117,25 +143,7 @@ export function InteractiveMap() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* 
-        故事层容器 (StoryCardStack & TextArea)
-        布局: 位于地图层正上方 (-top-full)
-        交互: 随地图层同步向下平移，覆盖当前视口
-      */}
-      <div 
-        className="absolute inset-0 -top-full h-screen w-full bg-[#fdfbf7] z-20 transition-transform duration-700 ease-in-out"
-        style={{ transform: activeLocation ? 'translateY(100%)' : 'translateY(0)' }}
-      >
-         {/* 仅在激活时渲染子组件，保持性能 */}
-         {activeLocation && (
-             <StoryView 
-                stories={activeLocation.stories} 
-                onBack={() => setActiveLocation(null)} 
-             />
-         )}
-      </div>
+      </section>
     </div>
   );
 }

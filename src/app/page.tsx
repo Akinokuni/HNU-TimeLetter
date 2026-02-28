@@ -25,7 +25,11 @@ export default function Home() {
   }
 
   return (
-    <main className="relative w-full h-screen overflow-hidden bg-[#fdfbf7]">
+    <main
+      className={`relative w-full bg-[#fdfbf7] ${
+        isEnvelopeOpened ? 'min-h-screen' : 'h-screen overflow-hidden'
+      }`}
+    >
       {/* 全局背景噪音与光效 (Persistent Background) */}
       <div className="fixed inset-0 opacity-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply z-0" />
       
@@ -35,7 +39,7 @@ export default function Home() {
         ) : (
           <motion.div
             key="content"
-            className="relative z-10 w-full h-full"
+            className="relative z-10 w-full min-h-screen"
             initial={{ opacity: 0, filter: "blur(10px)" }}
             animate={{ opacity: 1, filter: "blur(0px)" }}
             transition={{ duration: 1.5, ease: "easeOut" }}

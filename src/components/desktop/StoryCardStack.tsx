@@ -2,8 +2,8 @@
 
 import { motion, useMotionValue, useTransform, PanInfo, animate, MotionValue, useMotionValueEvent, MotionStyle } from 'framer-motion';
 import { Story } from '@/lib/types';
-import { X } from 'lucide-react';
-import { useEffect } from 'react';
+import { ChevronDown } from 'lucide-react';
+import { memo, useCallback, useEffect, useMemo } from 'react';
 
 interface StoryCardStackProps {
   stories: Story[];
@@ -14,18 +14,35 @@ interface StoryCardStackProps {
 }
 
 export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBack }: StoryCardStackProps) {
-  const topIndex = activeIndices[0];
+  const normalizedIndices = useMemo(
+    () => activeIndices.filter((index) => index >= 0 && index < stories.length),
+    [activeIndices, stories.length]
+  );
+  const renderIndices = useMemo(
+    () => (normalizedIndices.length > 0 ? normalizedIndices : stories.map((_, i) => i)),
+    [normalizedIndices, stories]
+  );
+  const reversedIndices = useMemo(() => renderIndices.slice().reverse(), [renderIndices]);
+  const topIndex = renderIndices[0];
   
   // 共享的拖拽值，仅用于驱动"下一张"卡片的联动动画 (Scale/Opacity)
   // 实际的卡片位移由各卡片内部的 MotionValue (x) 独立管理
   const sharedDragX = useMotionValue(0);
 
   // 处理滑动完成的逻辑
-  const handleSwipeComplete = () => {
+  const handleSwipeComplete = useCallback(() => {
       onSwipe();
       // 重置联动值，以便下一张卡片（新的 Top）处于初始状态
       sharedDragX.set(0); 
-  };
+  }, [onSwipe, sharedDragX]);
+
+  // 预加载故事图片，减少切换到下一张时的解码卡顿
+  useEffect(() => {
+    stories.forEach((story) => {
+      const img = new Image();
+      img.src = story.mainImageUrl;
+    });
+  }, [stories]);
 
   return (
     <div className="relative w-full h-[60vh] flex items-center justify-center">
@@ -33,15 +50,19 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBa
         <button 
             onClick={onBack}
             className="absolute top-4 left-4 z-50 p-2 bg-white/80 rounded-full shadow-md hover:bg-white transition-colors cursor-pointer pointer-events-auto"
+            aria-label="滚动到地图区域"
+            title="滚动到地图区域"
         >
-            <X size={24} />
+            <ChevronDown size={24} />
         </button>
 
       <div className="relative w-full h-full flex items-center justify-center">
-        {activeIndices.slice().reverse().map((index, i) => {
+        {reversedIndices.map((index, i) => {
             const isTop = index === topIndex;
             const story = stories[index];
-            const offset = activeIndices.length - 1 - i; // 0 = 顶层, 1 = 第二层...
+            if (!story) return null;
+
+            const offset = renderIndices.length - 1 - i; // 0 = 顶层, 1 = 第二层...
 
             return (
                 <Card 
@@ -51,7 +72,7 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect, onBa
                     offset={offset}
                     storyCount={stories.length}
                     sharedDragX={sharedDragX}
-                    zIndex={activeIndices.length - offset}
+                    zIndex={renderIndices.length - offset}
                     onSwipe={handleSwipeComplete}
                     onSelect={onSelect}
                 />
@@ -77,7 +98,7 @@ interface CardProps {
     onSelect: () => void;
 }
 
-function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, onSelect }: CardProps) {
+function CardComponent({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, onSelect }: CardProps) {
     // 每个卡片拥有独立的 x 位移状态
     const x = useMotionValue(0);
 
@@ -104,7 +125,6 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
     const baseScale = 1 - offset * scaleFactor;
     const baseY = offset * 15;
     const baseRotate = offset * 3;
-
     // 目标状态 (下一层级，即 offset - 1)
     const targetOffset = Math.max(0, offset - 1);
     const targetScale = 1 - targetOffset * scaleFactor;
@@ -166,7 +186,7 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
 
     return (
         <motion.div
-            className="absolute h-[60vh] max-h-[600px] w-auto bg-white rounded-xl shadow-2xl cursor-pointer border-[8px] border-white flex-shrink-0"
+            className="absolute h-[60vh] max-h-[600px] w-auto bg-white rounded-xl shadow-2xl cursor-pointer border-[8px] border-white flex-shrink-0 will-change-transform"
             style={style}
             drag={isTop ? "x" : false}
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
@@ -192,3 +212,16 @@ function Card({ story, isTop, offset, storyCount, sharedDragX, zIndex, onSwipe, 
         </motion.div>
     );
 }
+
+const Card = memo(CardComponent, (prev, next) => {
+  return (
+    prev.story.id === next.story.id &&
+    prev.isTop === next.isTop &&
+    prev.offset === next.offset &&
+    prev.storyCount === next.storyCount &&
+    prev.zIndex === next.zIndex &&
+    prev.onSwipe === next.onSwipe &&
+    prev.onSelect === next.onSelect &&
+    prev.sharedDragX === next.sharedDragX
+  );
+});
