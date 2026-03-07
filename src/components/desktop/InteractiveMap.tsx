@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import data from '@/data/content.json';
 import { StoryView } from './StoryView';
+import { QuillSearch } from './QuillSearch';
 import { LocationPoint } from '@/lib/types';
 
 /**
@@ -15,10 +16,10 @@ import { LocationPoint } from '@/lib/types';
  *  rolled ──(点击卷轴)──► unrolling ──(故事退出完成 → 地图展开 → 动画完成)──► idle
  *
  * 布局策略:
- *  - 地图容器: absolute right-0, 动画 width 100% ↔ STRIP_WIDTH px (右锚定)
- *  - 故事面板: absolute left-0 right-[STRIP_WIDTH], z-30 (位于地图上方)
- *  - 地图容器: z-10，卷起后 56px 条带可见，故事面板从左侧露出
- *  - 卷轴条按钮: z-30 (位于地图堆叠上下文内，与故事面板同层级)
+ *  - 地图容器: absolute inset-0, 动画通过 translateX 移动 (向左移出视野)
+ *  - 故事面板: absolute top-0 right-0 bottom-0, z-10 (位于地图下方)
+ *  - 卷起后: 靠左剩余 56px 条带可见，故事面板从右侧露出
+ *  - 卷轴条按钮: z-30 (位于左边界，提供展开按钮)
  *
  * 性能要点:
  *  - 使用 transform (translateX) 代替 width 动画，跳过 Layout/Paint 阶段
@@ -59,6 +60,11 @@ export function InteractiveMap() {
 
   // ─── 当前激活地点 ──────────────────────────────────────────────────────────
   const [activeLocation, setActiveLocation] = useState<LocationPoint | null>(null);
+
+  // ─── 搜索跳转相关 ─────────────────────────────────────────────────────────
+  const [bouncingPinId, setBouncingPinId] = useState<string | null>(null);
+  /** 搜索命中后暂存目标 locationId，等地图展开完成后执行跳动 */
+  const searchTargetRef = useRef<string | null>(null);
 
   // ─── 容器 & 地图尺寸计算 ──────────────────────────────────────────────────
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -135,7 +141,33 @@ export function InteractiveMap() {
     } else if (p === 'unrolling') {
       setPhase('idle');
       setActiveLocation(null);
+
+      // 如果是搜索跳转引起的 unrolling，展开完成后执行 Pin 跳动
+      const target = searchTargetRef.current;
+      if (target) {
+        searchTargetRef.current = null;
+        setBouncingPinId(target);
+        // 跳动结束后选中该 location 并重新卷起
+        setTimeout(() => {
+          setBouncingPinId(null);
+          const loc = data.locations.find((l) => l.id === target);
+          if (loc && loc.stories.length > 0) {
+            setActiveLocation(loc as LocationPoint);
+            setIsMapRolled(true);
+            setPhase('rolling');
+          }
+        }, 900); // 跳动动画约 0.8s
+      }
     }
+  }, []);
+
+  /**
+   * 搜索成功回调：先关闭故事面板，展开地图，然后跳动 Pin。
+   */
+  const handleSearchResult = useCallback((locationId: string) => {
+    if (phaseRef.current !== 'rolled') return;
+    searchTargetRef.current = locationId;
+    setPhase('unrolling');
   }, []);
 
   // showStory 控制 AnimatePresence 的挂载/卸载
@@ -146,7 +178,7 @@ export function InteractiveMap() {
     <div className="relative w-full h-screen overflow-hidden bg-[#fdfbf7]">
 
       {/* ── 故事面板 ─────────────────────────────────────────────────────────
-          z-10，位于地图下方。地图卷起后从左侧"露出"。
+          z-10，位于地图下方。地图卷起后从右侧"露出"。
           key 绑定 activeLocation.id：切换地点时触发重新挂载与进场动画。
           onExitComplete：故事退场完成后，通知地图开始展开。
       ──────────────────────────────────────────────────────────────────── */}
@@ -154,8 +186,8 @@ export function InteractiveMap() {
         {showStory && activeLocation && (
           <motion.div
             key={activeLocation.id}
-            className="absolute top-0 left-0 bottom-0 z-10"
-            style={{ right: STRIP_WIDTH }}
+            className="absolute top-0 right-0 bottom-0 z-10"
+            style={{ left: STRIP_WIDTH }}
             initial={{ opacity: 0, y: 48 }}
             animate={{
               opacity: 1,
@@ -169,20 +201,22 @@ export function InteractiveMap() {
             }}
           >
             <StoryView stories={activeLocation.stories} />
+            {/* 笔与墨搜索组件 — 固定在故事面板右下角 */}
+            <QuillSearch onSearchResult={handleSearchResult} />
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* ── 地图容器 ──────────────────────────────────────────────────────────
           z-20。使用双层 translateX 实现"卷起"效果 (纯 GPU Compositor，零 repaint)。
-          外层: translateX(rollOffset) 右推 + overflow-hidden 裁剪可见区域
-          内层: translateX(-rollOffset) 反向左推 → 地图内容视觉保持原位
+          外层: translateX(-rollOffset) 左推 + overflow-hidden 裁剪可见区域
+          内层: translateX(rollOffset) 反向右推 → 地图内容视觉保持原位
           三层均 will-change:transform → SVG 预光栅化至 GPU 纹理，动画期间零 CPU 绘制
       ──────────────────────────────────────────────────────────────────── */}
       <motion.div
-        className="absolute inset-0 z-20 overflow-hidden shadow-[-8px_0_30px_rgba(0,0,0,0.08)]"
+        className="absolute inset-0 z-20 overflow-hidden shadow-[8px_0_30px_rgba(0,0,0,0.08)]"
         style={{ willChange: 'transform' }}
-        animate={{ x: isMapRolled ? rollOffset : 0 }}
+        animate={{ x: isMapRolled ? -rollOffset : 0 }}
         transition={isMapRolled ? MAP_ROLL_TRANSITION.roll : MAP_ROLL_TRANSITION.unroll}
         onAnimationComplete={handleMapAnimationComplete}
       >
@@ -190,7 +224,7 @@ export function InteractiveMap() {
         <motion.div
           className="absolute inset-0"
           style={{ willChange: 'transform' }}
-          animate={{ x: isMapRolled ? -rollOffset : 0 }}
+          animate={{ x: isMapRolled ? rollOffset : 0 }}
           transition={isMapRolled ? MAP_ROLL_TRANSITION.roll : MAP_ROLL_TRANSITION.unroll}
         >
           {/* 地图内容层：translateZ(0) 强制 GPU 层，SVG 预光栅化为纹理
@@ -228,15 +262,29 @@ export function InteractiveMap() {
                   const latestStory = loc.stories[0];
                   if (!latestStory) return null;
 
+                  const isBouncing = bouncingPinId === loc.id;
+
                   return (
-                    <div
+                    <motion.div
                       key={loc.id}
                       className="absolute cursor-pointer group"
                       style={{
                         left: `${loc.x}%`,
                         top: `${loc.y}%`,
-                        transform: 'translate(-50%, -50%)',
                       }}
+                      animate={
+                        isBouncing
+                          ? {
+                            y: ['-50%', 'calc(-50% - 14px)', '-50%', 'calc(-50% - 10px)', '-50%'],
+                            x: '-50%',
+                          }
+                          : { x: '-50%', y: '-50%' }
+                      }
+                      transition={
+                        isBouncing
+                          ? { duration: 0.8, ease: 'easeInOut', times: [0, 0.2, 0.45, 0.65, 1] }
+                          : { duration: 0 }
+                      }
                       onClick={() => handleLocationSelect(loc)}
                     >
                       {/* Avatar 气泡 */}
@@ -258,7 +306,7 @@ export function InteractiveMap() {
                           <span className="ml-1 text-xs text-gray-300">({loc.stories.length})</span>
                         )}
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
 
@@ -274,8 +322,8 @@ export function InteractiveMap() {
       <motion.div
         className="absolute top-0 bottom-0 z-25 w-16 pointer-events-none"
         style={{
-          right: STRIP_WIDTH,
-          background: 'linear-gradient(to left, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 40%, transparent 100%)',
+          left: STRIP_WIDTH,
+          background: 'linear-gradient(to right, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.04) 40%, transparent 100%)',
         }}
         initial={{ opacity: 0 }}
         animate={{ opacity: isMapRolled ? 1 : 0 }}
@@ -284,18 +332,18 @@ export function InteractiveMap() {
 
       {/* ── 卷轴条 (Scroll Strip) ──────────────────────────────────────────
           z-30，独立于地图容器（不受 clipPath 影响）。
-          固定在视口右侧，地图卷起时淡入。
+          固定在视口左侧，地图卷起时淡入。
           点击此条触发 handleRollBack，启动还原流程。
       ──────────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
         {isMapRolled && (
           <motion.button
             key="scroll-strip"
-            className="absolute right-0 top-0 bottom-0 z-30 flex flex-col items-center justify-center gap-4 select-none"
+            className="absolute left-0 top-0 bottom-0 z-30 flex flex-col items-center justify-center gap-4 select-none"
             style={{
               width: STRIP_WIDTH,
-              background: 'linear-gradient(to right, #ede6d9 50%, rgba(237,230,217,0.6))',
-              boxShadow: '5px 0 25px rgba(139,90,43,0.22), inset -2px 0 0 rgba(139,90,43,0.15)',
+              background: 'linear-gradient(to left, #ede6d9 50%, rgba(237,230,217,0.6))',
+              boxShadow: '-5px 0 25px rgba(139,90,43,0.22), inset 2px 0 0 rgba(139,90,43,0.15)',
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.22, delay: 0.1 } }}
@@ -335,7 +383,7 @@ export function InteractiveMap() {
               展开地图
             </p>
 
-            {/* 向左箭头（暗示可展开） */}
+            {/* 向右箭头（暗示可展开） */}
             <svg
               width="12"
               height="12"
@@ -349,7 +397,7 @@ export function InteractiveMap() {
               style={{ color: 'rgba(139,90,43,0.6)' }}
               aria-hidden="true"
             >
-              <path d="M15 18l-6-6 6-6" />
+              <path d="M9 18l6-6-6-6" />
             </svg>
           </motion.button>
         )}
