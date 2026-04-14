@@ -2,7 +2,7 @@
   "sync": {
     "enabled": false,
     "cron": "0 0 * * *",
-    "lastRun": "2026-03-07T17:14:59.936Z",
+    "lastRun": "2026-03-27T13:31:06.390Z",
     "status": "success",
     "lastMessage": "同步完成"
   }
