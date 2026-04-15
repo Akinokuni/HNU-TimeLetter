@@ -180,6 +180,62 @@
 }
 
 @layer utilities {
+  @keyframes hero-envelope-descent {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, -120vh, 0) rotateX(6deg) rotateZ(-3deg);
+    }
+    38% {
+      opacity: 1;
+      transform: translate3d(18px, -62vh, 0) rotateX(3.5deg) rotateZ(-1.4deg);
+    }
+    70% {
+      opacity: 1;
+      transform: translate3d(-12px, -18vh, 0) rotateX(-1.2deg) rotateZ(1.8deg);
+    }
+    90% {
+      opacity: 1;
+      transform: translate3d(4px, 6px, 0) rotateX(0.4deg) rotateZ(-0.5deg);
+    }
+    100% {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) rotateX(0deg) rotateZ(0deg);
+    }
+  }
+
+  @keyframes hero-envelope-settle {
+    0% {
+      transform: translate3d(0, 0, 0) rotateX(0deg) rotateZ(0deg);
+    }
+    35% {
+      transform: translate3d(0, 2px, 0) rotateX(0deg) rotateZ(0deg);
+    }
+    100% {
+      transform: translate3d(0, 0, 0) rotateX(0deg) rotateZ(0deg);
+    }
+  }
+
+  .hero-ribbon-clip {
+    clip-path: inset(0% 0% 100% 0%);
+  }
+
+  .hero-ribbon-revealed {
+    clip-path: inset(0% 0% 0% 0%);
+    transition: clip-path 1400ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .hero-envelope-gpu {
+    backface-visibility: hidden;
+    transform: translate3d(0, -120vh, 0) rotateX(6deg) rotateZ(-3deg);
+    transform-style: preserve-3d;
+  }
+
+  .hero-envelope-entry {
+    animation:
+      hero-envelope-descent 1760ms cubic-bezier(0.25, 1, 0.5, 1) both,
+      hero-envelope-settle 240ms 1760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
   .page-paper {
     background:
       radial-gradient(circle at top, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0) 42%),

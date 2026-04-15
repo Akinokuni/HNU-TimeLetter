@@ -1,327 +1,391 @@
 'use client';
 
+import Image from 'next/image';
 import { motion, useAnimationControls } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import { useAppStore } from '@/lib/store';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
+
+function TwistedRibbon() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none h-full w-[100px] shrink-0"
+    >
+      <svg
+        className="size-full drop-shadow-[10px_0_24px_rgba(122,22,35,0.18)]"
+        fill="none"
+        preserveAspectRatio="none"
+        viewBox="0 0 100 1080"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          d="M50 540C75 675 100 810 100 1080H0C0 810 25 675 50 540Z"
+          fill="url(#hero-ribbon-bottom)"
+        />
+        <path
+          d="M100 0C100 270 75 405 50 540C25 405 0 270 0 0H100Z"
+          fill="url(#hero-ribbon-top)"
+        />
+        <defs>
+          <linearGradient
+            gradientUnits="userSpaceOnUse"
+            id="hero-ribbon-bottom"
+            x1="183.315"
+            x2="-83.5254"
+            y1="16.7419"
+            y2="1063.26"
+          >
+            <stop stopColor="#C23643" />
+            <stop offset="0.2" stopColor="#AE303C" />
+            <stop offset="0.4" stopColor="#86252E" />
+            <stop offset="0.5" stopColor="#9A2B35" />
+            <stop offset="0.6" stopColor="#86252E" />
+            <stop offset="0.8" stopColor="#AE303C" />
+            <stop offset="1" stopColor="#C23643" />
+          </linearGradient>
+          <linearGradient
+            gradientUnits="userSpaceOnUse"
+            id="hero-ribbon-top"
+            x1="50"
+            x2="50"
+            y1="-540"
+            y2="540"
+          >
+            <stop stopColor="#D45863" />
+            <stop offset="0.58" stopColor="#C23643" />
+            <stop offset="1" stopColor="#7A1623" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
 
 export function EnvelopeIntro() {
   const { setEnvelopeOpened } = useAppStore();
   const [isOpening, setIsOpening] = useState(false);
-  const controls = useAnimationControls();
+  const [entryStarted, setEntryStarted] = useState(false);
+  const [ribbonRevealed, setRibbonRevealed] = useState(false);
+  const [titleVisible, setTitleVisible] = useState(false);
+  const [hintVisible, setHintVisible] = useState(false);
+  const openControls = useAnimationControls();
+  const isOpeningRef = useRef(false);
+  const envelopeRef = useRef<HTMLDivElement>(null);
+  const ribbonRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    isOpeningRef.current = isOpening;
+  }, [isOpening]);
+
+  useEffect(() => {
+    let active = true;
+    const envelopeNode = envelopeRef.current;
+    const ribbonNode = ribbonRef.current;
+    const timeoutIds: number[] = [];
+    let frameId = 0;
+    let nestedFrameId = 0;
+
+    if (envelopeNode) {
+      envelopeNode.style.willChange = 'transform, opacity';
+    }
+    if (ribbonNode) {
+      ribbonNode.style.willChange = 'clip-path';
+    }
+
+    frameId = window.requestAnimationFrame(() => {
+      if (!active) {
+        return;
+      }
+
+      nestedFrameId = window.requestAnimationFrame(() => {
+        if (!active) {
+          return;
+        }
+
+        setEntryStarted(true);
+        setRibbonRevealed(true);
+        timeoutIds.push(
+          window.setTimeout(() => {
+            if (!active || isOpeningRef.current) {
+              return;
+            }
+
+            setTitleVisible(true);
+          }, 1400)
+        );
+        timeoutIds.push(
+          window.setTimeout(() => {
+            if (!active || isOpeningRef.current) {
+              return;
+            }
+
+            setHintVisible(true);
+          }, 2000)
+        );
+        timeoutIds.push(
+          window.setTimeout(() => {
+            if (envelopeNode) {
+              envelopeNode.style.willChange = '';
+            }
+            if (ribbonNode) {
+              ribbonNode.style.willChange = '';
+            }
+          }, 2200)
+        );
+      });
+    });
+
+    return () => {
+      active = false;
+      window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(nestedFrameId);
+      timeoutIds.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      if (envelopeNode) {
+        envelopeNode.style.willChange = '';
+      }
+      if (ribbonNode) {
+        ribbonNode.style.willChange = '';
+      }
+    };
+  }, []);
 
   const handleOpen = async () => {
     if (isOpening) return;
+    isOpeningRef.current = true;
     setIsOpening(true);
+    setTitleVisible(false);
+    setHintVisible(false);
+    if (envelopeRef.current) {
+      envelopeRef.current.style.willChange = 'transform, opacity';
+    }
 
-    // 1. 播放开信动画序列 (约 1.7s)
-    void controls.start('open');
-    
-    // 2. 等待信纸抽出 (1.7s) + 悬停 (0.2s) = 1.9s
+    void openControls.start('open');
     await new Promise((resolve) => setTimeout(resolve, 1900));
 
-    // 3. 信封下落 (0.6s)
-    void controls.start('drop_envelope');
+    void openControls.start('drop_envelope');
     await new Promise((resolve) => setTimeout(resolve, 600));
-    
-    // 4. 信纸放大 (0.8s)
-    void controls.start('expand_letter');
+
+    void openControls.start('expand_letter');
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    // 5. 切换状态
     setEnvelopeOpened(true);
   };
 
   return (
     <motion.div
-      className={cn(
-        "fixed inset-0 z-50 bg-[#fdfbf7] snap-y snap-mandatory scroll-smooth",
-        isOpening ? "overflow-hidden" : "overflow-y-auto"
-      )}
-      initial={{ opacity: 1 }}
+      className="page-paper fixed inset-0 z-50 overflow-hidden"
       exit={{ opacity: 0 }}
-      transition={{ duration: 1, ease: "easeInOut" }}
+      initial={{ opacity: 1 }}
+      transition={{ duration: 1, ease: 'easeInOut' }}
     >
-      {/* 第一屏：启封 */}
-      <section className="w-full h-screen snap-start relative flex items-center justify-center overflow-hidden">
-        {/* 背景氛围：光影与噪点 */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply" />
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-transparent to-blue-50/30 pointer-events-none" />
+      <section className="relative h-screen w-full overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 opacity-25 mix-blend-multiply bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.45),rgba(255,255,255,0)_28%),radial-gradient(circle_at_82%_50%,rgba(255,255,255,0.22),rgba(255,255,255,0)_26%),linear-gradient(135deg,rgba(255,255,255,0.18),rgba(194,54,67,0.04))]" />
 
-        {/* 标题 */}
-        <motion.div 
-          className="absolute top-[15%] md:top-[18%] left-0 right-0 text-center z-40 px-4 pointer-events-none space-y-3"
-          initial={{ opacity: 0, y: -20 }}
-          animate={isOpening ? { opacity: 0, y: -50, filter: "blur(10px)" } : { opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 1, ease: "easeInOut" }}
-        >
-          <h1 className="font-serif text-3xl md:text-5xl text-stone-800 font-bold tracking-[0.2em] drop-shadow-sm">
-            与她的海大时光笺
-          </h1>
-          <p className="font-sans text-xs md:text-sm text-stone-500 tracking-[0.4em] uppercase opacity-80">
-            Hainan University TimeLetter
-          </p>
-        </motion.div>
-
-        {/* 信封容器 */}
-        <motion.div
-          className="relative w-[340px] h-[240px] md:w-[480px] md:h-[320px] perspective-1000"
-          initial="idle"
-          animate={isOpening ? undefined : "idle"}
-          variants={{
-            idle: {
-              y: [0, -10, 0],
-              rotate: [0, 1, 0, -1, 0],
-              transition: {
-                duration: 6,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }
-            }
-          }}
-        >
-          <motion.div
-            className="relative w-full h-full preserve-3d"
-            animate={controls}
-            variants={{
-              open: {
-                y: 100,
-                scale: 1.1,
-                transition: { duration: 0.8, ease: "backOut" }
-              },
-              exit: {
-                opacity: 0,
-                scale: 1.5,
-                filter: "blur(10px)",
-                transition: { duration: 0.8 }
-              }
-            }}
+        <div className="relative z-10 grid h-full w-full grid-cols-5 items-center">
+          <div
+            ref={ribbonRef}
+            className={cn(
+              'hero-ribbon-clip col-start-1 flex h-full items-center justify-end overflow-visible',
+              ribbonRevealed && 'hero-ribbon-revealed'
+            )}
           >
-            {/* 信封背面 (Inside) */}
-            <motion.div 
-              className="absolute inset-0 bg-[#e6ded5] rounded-lg shadow-2xl" 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
+            <TwistedRibbon />
+          </div>
 
-            {/* 信纸 (Letter) */}
+          <div
+            className={cn(
+              'col-start-2 flex items-center justify-center self-center transition-opacity duration-[800ms] [transition-timing-function:cubic-bezier(0.83,0,0.17,1)]',
+              titleVisible ? 'opacity-100' : 'opacity-0'
+            )}
+          >
+            <h1
+              className="font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
+              style={{
+                textOrientation: 'upright',
+                writingMode: 'vertical-rl',
+              }}
+            >
+              与她的海大时光笺
+            </h1>
+          </div>
+
+          <motion.div
+            className={cn(
+              'hero-envelope-gpu relative col-start-3 col-span-3 mx-auto aspect-[595/397] w-[280px] perspective-1000 sm:w-[360px] md:w-[480px] lg:w-[595px]',
+              entryStarted && !isOpening && 'hero-envelope-entry'
+            )}
+            ref={envelopeRef}
+            style={{ transformOrigin: '50% 50%' }}
+          >
             <motion.div
-              className="absolute left-4 right-4 top-4 bottom-4 bg-white shadow-sm flex flex-col items-center justify-center p-8 text-center origin-bottom z-10"
+              animate={openControls}
+              className="relative h-full w-full preserve-3d"
               variants={{
-                open: {
-                  y: -150,
-                  transition: { delay: 0.7, duration: 1, type: "spring", bounce: 0.3 } 
-                },
                 drop_envelope: {
-                  y: -150,
-                  transition: { duration: 0.6 } 
+                  transition: { staggerChildren: 0.02 },
                 },
-                expand_letter: {
-                  scale: 5,
-                  y: 0,
-                  opacity: 0,
-                  transition: { duration: 0.8, ease: "easeInOut" }
-                }
+                open: {
+                  scale: 1.08,
+                  y: 84,
+                  transition: { duration: 0.8, ease: 'backOut' },
+                },
               }}
             >
-              <div className="w-full h-full border-2 border-dashed border-stone-200 p-4 flex flex-col items-center justify-center">
-                <h2 className="font-serif text-2xl text-stone-800 mb-2 tracking-widest">时光笺</h2>
-                <p className="font-sans text-xs text-stone-500 uppercase tracking-widest">Hainan University</p>
-                <div className="mt-4 w-12 h-[1px] bg-stone-300" />
-                <p className="mt-4 text-xs text-stone-400 font-serif italic">
-                  &quot;献给每一段无法复刻的青春&quot;
-                </p>
-              </div>
+              <motion.div
+                className="absolute inset-0 rounded-[10px] bg-[#e8e0d5] shadow-[0_26px_60px_rgba(82,63,54,0.18)]"
+                variants={{
+                  drop_envelope: {
+                    opacity: 0,
+                    transition: { duration: 0.6, ease: 'easeIn' },
+                    y: 1000,
+                  },
+                  expand_letter: { opacity: 0, transition: { duration: 0 }, y: 1000 },
+                }}
+              >
+                <div className="absolute inset-0 rounded-[10px] bg-white/10" />
+              </motion.div>
+
+              <motion.div
+                className="paper-panel absolute inset-4 z-10 flex origin-bottom flex-col items-center justify-center p-6 text-center md:p-8"
+                variants={{
+                  drop_envelope: {
+                    transition: { duration: 0.6 },
+                    y: -150,
+                  },
+                  expand_letter: {
+                    opacity: 0,
+                    scale: 5,
+                    transition: { duration: 0.8, ease: 'easeInOut' },
+                    y: 0,
+                  },
+                  open: {
+                    transition: { bounce: 0.3, delay: 0.7, duration: 1, type: 'spring' },
+                    y: -150,
+                  },
+                }}
+              >
+                <div className="flex h-full w-full flex-col items-center justify-center border-2 border-dashed border-border/80 p-4 md:p-[18px]">
+                  <h2 className="mb-2 font-serif text-xl tracking-[0.16em] text-foreground md:text-2xl">
+                    时光笺
+                  </h2>
+                  <p className="font-serif text-[11px] uppercase tracking-[0.24em] text-muted-foreground md:text-xs">
+                    Hainan University
+                  </p>
+                  <div className="mt-4 h-px w-12 bg-border" />
+                  <p className="mt-4 font-serif text-[11px] italic text-muted-foreground md:text-xs">
+                    &quot;献给每一段无法复刻的青春&quot;
+                  </p>
+                </div>
+              </motion.div>
+
+              <motion.div
+                className="absolute inset-x-0 bottom-0 z-20 h-1/2 bg-[#f0eadd]"
+                style={{ clipPath: 'polygon(0 100%, 50% 0, 100% 100%)' }}
+                variants={{
+                  drop_envelope: {
+                    opacity: 0,
+                    transition: { duration: 0.6, ease: 'easeIn' },
+                    y: 1000,
+                  },
+                  expand_letter: { opacity: 0, transition: { duration: 0 }, y: 1000 },
+                }}
+              />
+              <motion.div
+                className="absolute inset-y-0 left-0 z-20 w-1/2 bg-[#f5efe4]"
+                style={{ clipPath: 'polygon(0 0, 0 100%, 100% 50%)' }}
+                variants={{
+                  drop_envelope: {
+                    opacity: 0,
+                    transition: { duration: 0.6, ease: 'easeIn' },
+                    y: 1000,
+                  },
+                  expand_letter: { opacity: 0, transition: { duration: 0 }, y: 1000 },
+                }}
+              />
+              <motion.div
+                className="absolute inset-y-0 right-0 z-20 w-1/2 bg-[#efe8dc]"
+                style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 50%)' }}
+                variants={{
+                  drop_envelope: {
+                    opacity: 0,
+                    transition: { duration: 0.6, ease: 'easeIn' },
+                    y: 1000,
+                  },
+                  expand_letter: { opacity: 0, transition: { duration: 0 }, y: 1000 },
+                }}
+              />
+
+              <motion.div
+                className="absolute inset-x-0 top-0 z-30 h-1/2 origin-top bg-[#e8e0d5] shadow-md"
+                style={{
+                  clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+                  transformStyle: 'preserve-3d',
+                }}
+                variants={{
+                  drop_envelope: {
+                    opacity: 0,
+                    transition: { duration: 0.6, ease: 'easeIn' },
+                    y: 1000,
+                  },
+                  expand_letter: { opacity: 0, transition: { duration: 0 }, y: 1000 },
+                  open: {
+                    rotateX: 180,
+                    transition: {
+                      rotateX: { duration: 0.6, ease: 'easeInOut' },
+                      zIndex: { delay: 0.3 },
+                    },
+                    zIndex: 0,
+                  },
+                }}
+              >
+                <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
+              </motion.div>
+
+              <motion.button
+                className={cn(
+                  'absolute left-1/2 top-1/2 z-40 h-[72px] w-[72px] -translate-x-1/2 -translate-y-1/2 cursor-pointer sm:h-[82px] sm:w-[82px] md:h-[92px] md:w-[92px]',
+                  isOpening && 'pointer-events-none'
+                )}
+                onClick={handleOpen}
+                variants={{
+                  drop_envelope: {
+                    opacity: 0,
+                    transition: { duration: 0.6, ease: 'easeIn' },
+                    y: 1000,
+                  },
+                  expand_letter: { opacity: 0, transition: { duration: 0 }, y: 1000 },
+                  open: {
+                    filter: 'blur(4px)',
+                    opacity: 0,
+                    scale: 1.5,
+                    transition: { duration: 0.3 },
+                  },
+                }}
+                whileHover={{ rotate: 2, scale: 1.08 }}
+                whileTap={{ scale: 0.94 }}
+              >
+                <Image
+                  alt="打开信封"
+                  className="object-contain drop-shadow-[0_10px_16px_rgba(20,53,104,0.35)]"
+                  fill
+                  priority
+                  sizes="(max-width: 640px) 72px, (max-width: 768px) 82px, 92px"
+                  src="/sealing_wax.png"
+                />
+              </motion.button>
+
+              <motion.p
+                className={cn(
+                  'absolute inset-x-0 -bottom-10 translate-y-2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 transition-[opacity,transform] duration-500 ease-in-out md:text-sm',
+                  hintVisible ? 'translate-y-0 opacity-55' : 'opacity-0'
+                )}
+              >
+                点击开启
+              </motion.p>
             </motion.div>
-
-            {/* 信封正面 (Front Flaps) */}
-            {/* 底部三角形 */}
-            <motion.div 
-              className="absolute bottom-0 left-0 right-0 h-1/2 bg-[#f0eadd] z-20" 
-              style={{ clipPath: "polygon(0 100%, 50% 0, 100% 100%)" }} 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-            {/* 左侧三角形 */}
-            <motion.div 
-              className="absolute left-0 top-0 bottom-0 w-1/2 bg-[#f5efe4] z-20" 
-              style={{ clipPath: "polygon(0 0, 0 100%, 100% 50%)" }} 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-            {/* 右侧三角形 */}
-            <motion.div 
-              className="absolute right-0 top-0 bottom-0 w-1/2 bg-[#efe8dc] z-20" 
-              style={{ clipPath: "polygon(100% 0, 100% 100%, 0 50%)" }} 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-
-            {/* 顶部封盖 (Top Flap) */}
-            <motion.div
-              className="absolute top-0 left-0 right-0 h-1/2 bg-[#e8e0d5] origin-top z-30 shadow-md"
-              style={{ 
-                clipPath: "polygon(0 0, 100% 0, 50% 100%)",
-                transformStyle: "preserve-3d"
-              }}
-              variants={{
-                open: {
-                  rotateX: 180,
-                  zIndex: 0,
-                  transition: { 
-                    rotateX: { duration: 0.6, ease: "easeInOut" },
-                    zIndex: { delay: 0.3 }
-                  }
-                },
-                drop_envelope: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0.6, ease: "easeIn" }
-                },
-                expand_letter: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0 }
-                }
-              }}
-            >
-               <div className="absolute inset-0 bg-[#ded6ca] backface-hidden rotate-x-180" />
-            </motion.div>
-
-            {/* 火漆印 (Wax Seal) */}
-            <motion.button
-              className={cn(
-                "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40",
-                "w-16 h-16 md:w-20 md:h-20 rounded-full",
-                "bg-red-800 shadow-xl flex items-center justify-center",
-                "border-4 border-red-700/50",
-                "cursor-pointer hover:bg-red-700 transition-colors",
-                isOpening && "pointer-events-none"
-              )}
-              onClick={handleOpen}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              variants={{
-                open: {
-                  opacity: 0,
-                  scale: 1.5,
-                  filter: "blur(4px)",
-                  transition: { duration: 0.3 }
-                },
-                drop_envelope: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0.6, ease: "easeIn" }
-                },
-                expand_letter: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0 }
-                }
-              }}
-            >
-              <div className="absolute inset-1 rounded-full border border-red-900/30 opacity-50" />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-black/20 to-white/10" />
-              <span className="font-serif text-amber-100/90 text-xl md:text-2xl font-bold tracking-tighter drop-shadow-md">
-                HNU
-              </span>
-            </motion.button>
-            
-            {/* 点击提示 */}
-            <motion.p
-              className="absolute -bottom-12 left-0 right-0 text-center text-stone-400 text-sm font-serif tracking-widest"
-              variants={{
-                idle: { opacity: [0.5, 1, 0.5], transition: { duration: 2, repeat: Infinity } },
-                open: { opacity: 0 }
-              }}
-              animate={isOpening ? "open" : "idle"}
-            >
-              点击开启
-            </motion.p>
           </motion.div>
-        </motion.div>
-
-        {/* 下滑提示 */}
-        <motion.div 
-          className="absolute bottom-8 left-0 right-0 flex flex-col items-center justify-center text-stone-400 gap-2"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2, duration: 1 }}
-        >
-          <span className="text-xs font-serif tracking-widest">关于项目</span>
-          <ChevronDown className="w-5 h-5 animate-bounce" />
-        </motion.div>
-      </section>
-
-      {/* 第二屏：关于项目 */}
-      <section className="w-full h-screen snap-start relative flex items-center justify-center bg-[#fdfbf7] p-8">
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply" />
-        <div className="max-w-2xl text-center space-y-8 z-10">
-          <div className="space-y-2">
-            <h2 className="text-3xl md:text-4xl font-serif text-stone-800">关于项目</h2>
-            <p className="text-stone-400 font-serif italic">Project Vision</p>
-          </div>
-          
-          <div className="w-16 h-[1px] bg-stone-300 mx-auto" />
-          
-          <p className="text-stone-600 leading-loose font-serif text-lg">
-            这是一个基于海南大学校园地图的交互式视觉叙事网站。<br/>
-            我们打破次元壁，将 Galgame 风格的二次元角色融入海大实景——<br/>
-            思源学堂、东坡湖、图书馆……<br/>
-            这里不仅有风景，更有属于我们的情感记忆。
-          </p>
-          
-          <p className="text-stone-600 leading-loose font-serif text-lg">
-            通过“图+文”的形式，<br/>
-            我们共同书写属于我们的“海大故事”。
-          </p>
-        </div>
-        
-        <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center justify-center text-stone-400 gap-2">
-          <ChevronDown className="w-5 h-5 animate-bounce" />
-        </div>
-      </section>
-
-      {/* 第三屏：关于我们 */}
-      <section className="w-full h-screen snap-start relative flex items-center justify-center bg-[#f5efe4] p-8">
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply" />
-        <div className="max-w-3xl text-center space-y-12 z-10">
-          <div className="space-y-2">
-            <h2 className="text-3xl md:text-4xl font-serif text-stone-800">关于我们</h2>
-            <p className="text-stone-400 font-serif italic">Our Team</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-stone-700 font-serif border-b border-stone-300 pb-2">策划与开发</h3>
-              <ul className="space-y-2 text-stone-600 font-sans">
-                <li className="flex justify-between"><span>基础设施 & 运维</span> <span className="text-stone-400">Dev A</span></li>
-                <li className="flex justify-between"><span>PC端体验</span> <span className="text-stone-400">Dev B</span></li>
-                <li className="flex justify-between"><span>移动端体验</span> <span className="text-stone-400">Dev C</span></li>
-              </ul>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-stone-700 font-serif border-b border-stone-300 pb-2">特别鸣谢</h3>
-              <ul className="space-y-2 text-stone-600 font-sans">
-                <li>所有为海大留下美好瞬间的摄影师们</li>
-                <li>以及每一个热爱海大的你</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 text-stone-400 text-sm font-serif">
-            © 2026 与她的海大时光笺 · Hainan University
-          </div>
         </div>
       </section>
     </motion.div>
