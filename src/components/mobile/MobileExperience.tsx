@@ -82,7 +82,7 @@ export function MobileExperience() {
   }, [selectedId, isMapOpen]);
 
   return (
-    <div className="relative w-full h-[100dvh] bg-[#fdfbf7] flex flex-col overflow-hidden">
+    <div className="relative w-full h-[100dvh] bg-background flex flex-col overflow-hidden">
       {/* 1. Header */}
       <header className="px-6 py-5 flex items-center justify-between border-b border-stone-100 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div>

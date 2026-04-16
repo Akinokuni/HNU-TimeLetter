@@ -159,8 +159,8 @@
     position: relative;
     isolation: isolate;
     background:
-      radial-gradient(circle at top, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 42%),
-      linear-gradient(135deg, #f3ede7 0%, #ece9e4 50%, #e4dbd3 100%);
+      radial-gradient(circle at top, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 42%),
+      linear-gradient(135deg, #efe9e3 0%, #ece9e4 50%, #e7e0d8 100%);
   }
   body::before {
     content: "";
@@ -193,7 +193,7 @@
   .page-paper {
     background:
       radial-gradient(circle at top, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0) 42%),
-      linear-gradient(135deg, #f3ede7 0%, #ece9e4 52%, #e4dbd3 100%);
+      linear-gradient(135deg, #efe9e3 0%, #ece9e4 52%, #e7e0d8 100%);
   }
   .paper-panel {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(246, 241, 235, 0.96) 100%);

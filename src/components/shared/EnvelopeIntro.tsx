@@ -1,13 +1,79 @@
 'use client';
 
 import Image from 'next/image';
-import { motion, useAnimationControls, useReducedMotion } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { motion, useAnimationControls, useReducedMotion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
 /* ────────────────────────────────────────────
+ * 火漆碎裂碎片组件
+ * 将火漆图片拆分为 8 块 clipPath 碎片，
+ * 各碎片沿径向飞散并旋转淡出，模拟碎裂效果。
+ * ──────────────────────────────────────────── */
+interface ShardData {
+  id: number;
+  clipPath: string;
+  x: number;
+  y: number;
+  rotate: number;
+  delay: number;
+}
+
+function WaxSealShards({ isShattered, sizeClass }: { isShattered: boolean; sizeClass: string }) {
+  const shards = useMemo<ShardData[]>(() => [
+    { id: 0, clipPath: 'polygon(30% 0%, 70% 0%, 55% 45%, 45% 45%)', x: 2, y: -90, rotate: -25, delay: 0 },
+    { id: 1, clipPath: 'polygon(70% 0%, 100% 0%, 100% 35%, 55% 45%)', x: 80, y: -70, rotate: 35, delay: 0.02 },
+    { id: 2, clipPath: 'polygon(100% 35%, 100% 70%, 60% 55%, 55% 45%)', x: 95, y: 15, rotate: 50, delay: 0.04 },
+    { id: 3, clipPath: 'polygon(100% 70%, 100% 100%, 65% 100%, 55% 60%)', x: 70, y: 85, rotate: -30, delay: 0.03 },
+    { id: 4, clipPath: 'polygon(55% 60%, 65% 100%, 35% 100%, 45% 60%)', x: -5, y: 95, rotate: 15, delay: 0.05 },
+    { id: 5, clipPath: 'polygon(0% 100%, 35% 100%, 45% 60%, 40% 55%, 0% 65%)', x: -75, y: 80, rotate: -45, delay: 0.02 },
+    { id: 6, clipPath: 'polygon(0% 65%, 40% 55%, 45% 45%, 0% 35%)', x: -90, y: 10, rotate: 40, delay: 0.04 },
+    { id: 7, clipPath: 'polygon(0% 0%, 30% 0%, 45% 45%, 0% 35%)', x: -80, y: -75, rotate: -35, delay: 0.01 },
+  ], []);
+
+  return (
+    <AnimatePresence>
+      {isShattered && shards.map((shard) => (
+        <motion.div
+          key={shard.id}
+          className={cn(
+            'absolute left-1/2 top-1/2 z-40 pointer-events-none',
+            sizeClass
+          )}
+          style={{ clipPath: shard.clipPath }}
+          initial={{ opacity: 1, x: '-50%', y: '-50%', scale: 1, rotate: 0 }}
+          animate={{
+            opacity: [1, 0.9, 0],
+            x: `calc(-50% + ${shard.x}px)`,
+            y: `calc(-50% + ${shard.y}px)`,
+            scale: [1, 0.85, 0.4],
+            rotate: shard.rotate,
+          }}
+          transition={{
+            duration: 0.65,
+            delay: shard.delay,
+            ease: [0.32, 0, 0.67, 0],
+            opacity: { times: [0, 0.4, 1] },
+          }}
+        >
+          <Image
+            alt=""
+            className="object-contain drop-shadow-[0_10px_16px_rgba(20,53,104,0.35)]"
+            fill
+            sizes="92px"
+            src="/sealing_wax.png"
+          />
+        </motion.div>
+      ))}
+    </AnimatePresence>
+  );
+}
+
+/* ────────────────────────────────────────────
  * Ribbon SVG — 首屏左侧竖向丝带装饰
+ * 使用 SVG 内置 feDropShadow 替代 CSS drop-shadow，
+ * 避免 GPU 合成导致的边缘半透明伪影。
  * ──────────────────────────────────────────── */
 function TwistedRibbon() {
   return (
@@ -16,28 +82,21 @@ function TwistedRibbon() {
       className="pointer-events-none h-full w-[100px] shrink-0"
     >
       <svg
-        className="size-full drop-shadow-[10px_0_24px_rgba(122,22,35,0.18)]"
+        className="size-full"
         fill="none"
         preserveAspectRatio="none"
         viewBox="0 0 100 1080"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          d="M50 540C75 675 100 810 100 1080H0C0 810 25 675 50 540Z"
-          fill="url(#hero-ribbon-bottom)"
-        />
-        <path
-          d="M100 0C100 270 75 405 50 540C25 405 0 270 0 0H100Z"
-          fill="url(#hero-ribbon-top)"
-        />
         <defs>
+          <filter id="hero-ribbon-shadow" x="-20%" y="-5%" width="160%" height="110%">
+            <feDropShadow dx="6" dy="0" stdDeviation="12" floodColor="#7A1623" floodOpacity="0.18" />
+          </filter>
           <linearGradient
             gradientUnits="userSpaceOnUse"
             id="hero-ribbon-bottom"
-            x1="183.315"
-            x2="-83.5254"
-            y1="16.7419"
-            y2="1063.26"
+            x1="183.315" x2="-83.5254"
+            y1="16.7419" y2="1063.26"
           >
             <stop stopColor="#C23643" />
             <stop offset="0.2" stopColor="#AE303C" />
@@ -50,16 +109,26 @@ function TwistedRibbon() {
           <linearGradient
             gradientUnits="userSpaceOnUse"
             id="hero-ribbon-top"
-            x1="50"
-            x2="50"
-            y1="-540"
-            y2="540"
+            x1="50" x2="50"
+            y1="-540" y2="540"
           >
             <stop stopColor="#D45863" />
             <stop offset="0.58" stopColor="#C23643" />
             <stop offset="1" stopColor="#7A1623" />
           </linearGradient>
         </defs>
+        <g filter="url(#hero-ribbon-shadow)">
+          <path
+            d="M50 540C75 675 100 810 100 1080H0C0 810 25 675 50 540Z"
+            fill="url(#hero-ribbon-bottom)"
+            shapeRendering="geometricPrecision"
+          />
+          <path
+            d="M100 0C100 270 75 405 50 540C25 405 0 270 0 0H100Z"
+            fill="url(#hero-ribbon-top)"
+            shapeRendering="geometricPrecision"
+          />
+        </g>
       </svg>
     </div>
   );
@@ -72,6 +141,30 @@ type Phase = 'loading' | 'entering' | 'idle' | 'opening';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
+/**
+ * 计算信纸展开的缩放倍率，使其覆盖整个视口。
+ * 信纸实际尺寸 = 信封尺寸 - inset-4 两侧 = 信封尺寸 - 32px
+ */
+function calcLetterScale(): number {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // 信封在不同断点的宽度 (与 className 中的响应式宽度对应)
+  let envelopeWidth = 595;
+  if (vw < 640) envelopeWidth = 280;
+  else if (vw < 768) envelopeWidth = 360;
+  else if (vw < 1024) envelopeWidth = 480;
+
+  const envelopeHeight = envelopeWidth * (397 / 595);
+  const letterWidth = envelopeWidth - 32;
+  const letterHeight = envelopeHeight - 32;
+
+  // 取宽高方向的最大缩放比，再额外增加 20% 确保完全覆盖
+  const scaleX = (vw / letterWidth) * 1.2;
+  const scaleY = (vh / letterHeight) * 1.2;
+  return Math.max(scaleX, scaleY);
+}
+
 /* ────────────────────────────────────────────
  * 主组件
  * ──────────────────────────────────────────── */
@@ -79,10 +172,12 @@ export function EnvelopeIntro() {
   const { setEnvelopeOpened } = useAppStore();
   const [phase, setPhase] = useState<Phase>('loading');
   const [ribbonRevealed, setRibbonRevealed] = useState(false);
+  const [isShattered, setIsShattered] = useState(false);
   const phaseRef = useRef<Phase>('loading');
 
   const envelopeControls = useAnimationControls();
   const openControls = useAnimationControls();
+  const shellDropControls = useAnimationControls();
   const prefersReducedMotion = useReducedMotion();
 
   // 保持 ref 同步，供异步回调中安全读取
@@ -106,19 +201,20 @@ export function EnvelopeIntro() {
         return;
       }
 
-      // 三阶段信封入场：离屏就绪 → 主轴下坠+次级飘动 → 阻尼落定
-      const vh = window.innerHeight;
+      // 信封入场：使用 spring 物理弹簧实现丝滑下落
+      // 从屏幕上方 120% 处下落，带微小摇摆
       await envelopeControls.start({
-        y: [-1.2 * vh, -0.56 * vh, -0.13 * vh, 5, 0],
-        x: [0, 16, -10, 3, 0],
-        opacity: [0, 1, 1, 1, 1],
-        rotateX: [6, 3, -1, 0.3, 0],
-        rotateZ: [-3, -1.2, 1.5, -0.4, 0],
+        y: 0,
+        x: 0,
+        opacity: 1,
+        rotateX: 0,
+        rotateZ: 0,
         transition: {
-          duration: 2,
-          ease: [0.25, 1, 0.5, 1],
-          times: [0, 0.36, 0.7, 0.9, 1],
-          opacity: { duration: 0.5, ease: 'easeOut' },
+          type: 'spring',
+          stiffness: 45,
+          damping: 14,
+          mass: 1.2,
+          opacity: { duration: 0.4, ease: 'easeOut' },
         },
       });
 
@@ -160,31 +256,49 @@ export function EnvelopeIntro() {
     envelopeControls.stop();
     envelopeControls.set({ y: 0, x: 0, rotate: 0, rotateX: 0, rotateZ: 0 });
 
+    // 0. 触发火漆碎裂 (立即)
+    setIsShattered(true);
+
     // 1. 封盖翻开 + 信纸抽出 (1.9s)
     void openControls.start('open');
     await sleep(1900);
 
-    // 2. 信封壳体下落 (0.6s)
-    void openControls.start('drop_envelope');
-    await sleep(600);
+    // 2. 信封壳体整体下落 (0.7s) — 保持完整形态
+    void shellDropControls.start({
+      y: '120vh',
+      rotate: 4,
+      opacity: 0,
+      transition: {
+        duration: 0.7,
+        ease: [0.55, 0, 1, 0.45], // 加速下落
+        opacity: { delay: 0.3, duration: 0.4 },
+      },
+    });
+    await sleep(700);
 
-    // 3. 信纸放大铺满屏幕 (0.8s)
-    void openControls.start('expand_letter');
-    await sleep(800);
+    // 3. 信纸放大铺满屏幕 (0.9s)
+    const targetScale = calcLetterScale();
+    void openControls.start({
+      scale: targetScale,
+      y: 0,
+      transition: {
+        duration: 0.9,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    });
+    // 信纸内容同步淡出
+    await sleep(900);
 
     setEnvelopeOpened(true);
-  }, [envelopeControls, openControls, setEnvelopeOpened]);
+  }, [envelopeControls, openControls, shellDropControls, setEnvelopeOpened]);
 
   const isIdle = phase === 'idle';
   const isOpening = phase === 'opening';
 
+  const waxSealSizeClass = 'h-[72px] w-[72px] sm:h-[82px] sm:w-[82px] md:h-[92px] md:w-[92px]';
+
   return (
-    <motion.div
-      className="page-paper fixed inset-0 z-50 overflow-hidden"
-      exit={{ opacity: 0 }}
-      initial={{ opacity: 1 }}
-      transition={{ duration: 1, ease: 'easeInOut' }}
-    >
+    <div className="page-paper relative w-full z-50">
       <section className="relative h-screen w-full overflow-hidden">
         {/* 背景噪点纹理 */}
         <div className="pointer-events-none absolute inset-0 opacity-25 mix-blend-multiply bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
@@ -217,7 +331,7 @@ export function EnvelopeIntro() {
             transition={{
               duration: isOpening ? 0.6 : 0.8,
               delay: isIdle && !isOpening ? 0.15 : 0,
-              ease: [0.85, 0, 0.15, 1], // quintic ease-in-out
+              ease: [0.85, 0, 0.15, 1],
             }}
           >
             <h1
@@ -235,7 +349,7 @@ export function EnvelopeIntro() {
             animate={envelopeControls}
             style={{ transformOrigin: '50% 50%' }}
           >
-            {/* 开信动画容器 — 通过 variants 编排子元素 */}
+            {/* 开信动画容器 */}
             <motion.div
               animate={openControls}
               className="relative h-full w-full preserve-3d"
@@ -245,28 +359,85 @@ export function EnvelopeIntro() {
                   y: 84,
                   transition: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1] },
                 },
-                drop_envelope: {
-                  transition: { staggerChildren: 0.02 },
-                },
               }}
             >
-              {/* 信封背面 */}
+              {/* ═══ 信封壳体容器 — 整体下落时保持完整形态 ═══ */}
               <motion.div
-                className="absolute inset-0 rounded-[10px] bg-[#e8e0d5] shadow-[0_26px_60px_rgba(82,63,54,0.18)]"
-                variants={{
-                  drop_envelope: {
-                    y: 1000,
-                    opacity: 0,
-                    rotate: 6,
-                    transition: { duration: 0.6, ease: 'easeIn' },
-                  },
-                  expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } },
-                }}
+                className="absolute inset-0"
+                animate={shellDropControls}
               >
-                <div className="absolute inset-0 rounded-[10px] bg-white/10" />
+                {/* 信封背面 */}
+                <div className="absolute inset-0 rounded-[10px] bg-[#e8e0d5] shadow-[0_26px_60px_rgba(82,63,54,0.18)]">
+                  <div className="absolute inset-0 rounded-[10px] bg-white/10" />
+                </div>
+
+                {/* 底部三角折叠 */}
+                <div
+                  className="absolute inset-x-0 bottom-0 z-20 h-1/2 bg-[#f0eadd]"
+                  style={{ clipPath: 'polygon(0 100%, 50% 0, 100% 100%)' }}
+                />
+                {/* 左侧三角折叠 */}
+                <div
+                  className="absolute inset-y-0 left-0 z-20 w-1/2 bg-[#f5efe4]"
+                  style={{ clipPath: 'polygon(0 0, 0 100%, 100% 50%)' }}
+                />
+                {/* 右侧三角折叠 */}
+                <div
+                  className="absolute inset-y-0 right-0 z-20 w-1/2 bg-[#efe8dc]"
+                  style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 50%)' }}
+                />
+
+                {/* 顶部封盖 — 3D翻转 */}
+                <motion.div
+                  className="absolute inset-x-0 top-0 z-30 h-1/2 origin-top bg-[#e8e0d5] shadow-md"
+                  style={{
+                    clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+                    transformStyle: 'preserve-3d',
+                  }}
+                  variants={{
+                    open: {
+                      rotateX: 180,
+                      zIndex: 0,
+                      transition: {
+                        rotateX: { duration: 0.6, ease: 'easeInOut' },
+                        zIndex: { delay: 0.3 },
+                      },
+                    },
+                  }}
+                >
+                  <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
+                </motion.div>
+
+                {/* 火漆印按钮 — hover 仅微旋，不缩放 */}
+                {!isShattered && (
+                  <motion.button
+                    className={cn(
+                      'absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 cursor-pointer',
+                      waxSealSizeClass,
+                      isOpening && 'pointer-events-none'
+                    )}
+                    onClick={handleOpen}
+                    initial={{ opacity: 1, scale: 1 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ rotate: 2 }}
+                    whileTap={{ scale: 0.96 }}
+                  >
+                    <Image
+                      alt="打开信封"
+                      className="object-contain drop-shadow-[0_10px_16px_rgba(20,53,104,0.35)]"
+                      fill
+                      priority
+                      sizes="(max-width: 640px) 72px, (max-width: 768px) 82px, 92px"
+                      src="/sealing_wax.png"
+                    />
+                  </motion.button>
+                )}
+
+                {/* 火漆碎裂碎片 */}
+                <WaxSealShards isShattered={isShattered} sizeClass={waxSealSizeClass} />
               </motion.div>
 
-              {/* 信纸 */}
+              {/* ═══ 信纸 — 独立于壳体，壳体下落时信纸留在原位 ═══ */}
               <motion.div
                 className="paper-panel absolute inset-4 z-10 flex origin-center flex-col items-center justify-center overflow-hidden p-6 text-center md:p-8"
                 variants={{
@@ -274,29 +445,13 @@ export function EnvelopeIntro() {
                     y: -150,
                     transition: { delay: 0.7, duration: 1, type: 'spring', bounce: 0.3 },
                   },
-                  drop_envelope: {
-                    y: -150,
-                    transition: { duration: 0.6 },
-                  },
-                  expand_letter: {
-                    scale: 3,
-                    y: 0,
-                    transition: {
-                      duration: 0.8,
-                      ease: [0.4, 0, 0.2, 1],
-                    },
-                  },
                 }}
               >
                 {/* 信纸内容 — 展开时快速淡出 */}
                 <motion.div
                   className="flex h-full w-full flex-col items-center justify-center border-2 border-dashed border-border/80 p-4 md:p-[18px]"
-                  variants={{
-                    expand_letter: {
-                      opacity: 0,
-                      transition: { duration: 0.3, ease: 'easeIn' },
-                    },
-                  }}
+                  animate={isOpening ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{ duration: 0.4, delay: isOpening ? 2.6 : 0, ease: 'easeIn' }}
                 >
                   <h2 className="mb-2 font-serif text-xl tracking-[0.16em] text-foreground md:text-2xl">
                     时光笺
@@ -310,134 +465,31 @@ export function EnvelopeIntro() {
                   </p>
                 </motion.div>
               </motion.div>
-
-              {/* 底部三角折叠 */}
-              <motion.div
-                className="absolute inset-x-0 bottom-0 z-20 h-1/2 bg-[#f0eadd]"
-                style={{ clipPath: 'polygon(0 100%, 50% 0, 100% 100%)' }}
-                variants={{
-                  drop_envelope: {
-                    y: 1000,
-                    opacity: 0,
-                    rotate: -3,
-                    transition: { duration: 0.6, ease: 'easeIn' },
-                  },
-                  expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } },
-                }}
-              />
-              {/* 左侧三角折叠 */}
-              <motion.div
-                className="absolute inset-y-0 left-0 z-20 w-1/2 bg-[#f5efe4]"
-                style={{ clipPath: 'polygon(0 0, 0 100%, 100% 50%)' }}
-                variants={{
-                  drop_envelope: {
-                    y: 1000,
-                    x: -80,
-                    opacity: 0,
-                    rotate: -8,
-                    transition: { duration: 0.6, ease: 'easeIn' },
-                  },
-                  expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } },
-                }}
-              />
-              {/* 右侧三角折叠 */}
-              <motion.div
-                className="absolute inset-y-0 right-0 z-20 w-1/2 bg-[#efe8dc]"
-                style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 50%)' }}
-                variants={{
-                  drop_envelope: {
-                    y: 1000,
-                    x: 80,
-                    opacity: 0,
-                    rotate: 8,
-                    transition: { duration: 0.6, ease: 'easeIn' },
-                  },
-                  expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } },
-                }}
-              />
-
-              {/* 顶部封盖 — 3D翻转 */}
-              <motion.div
-                className="absolute inset-x-0 top-0 z-30 h-1/2 origin-top bg-[#e8e0d5] shadow-md"
-                style={{
-                  clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
-                  transformStyle: 'preserve-3d',
-                }}
-                variants={{
-                  open: {
-                    rotateX: 180,
-                    zIndex: 0,
-                    transition: {
-                      rotateX: { duration: 0.6, ease: 'easeInOut' },
-                      zIndex: { delay: 0.3 },
-                    },
-                  },
-                  drop_envelope: {
-                    y: 1000,
-                    opacity: 0,
-                    rotate: -5,
-                    transition: { duration: 0.6, ease: 'easeIn' },
-                  },
-                  expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } },
-                }}
-              >
-                <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
-              </motion.div>
-
-              {/* 火漆印按钮 */}
-              <motion.button
-                className={cn(
-                  'absolute left-1/2 top-1/2 z-40 h-[72px] w-[72px] -translate-x-1/2 -translate-y-1/2 cursor-pointer sm:h-[82px] sm:w-[82px] md:h-[92px] md:w-[92px]',
-                  isOpening && 'pointer-events-none'
-                )}
-                onClick={handleOpen}
-                variants={{
-                  open: {
-                    opacity: 0,
-                    scale: 1.5,
-                    filter: 'blur(4px)',
-                    transition: { duration: 0.3 },
-                  },
-                  drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: 'easeIn' } },
-                  expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } },
-                }}
-                whileHover={{ rotate: 2, scale: 1.08 }}
-                whileTap={{ scale: 0.94 }}
-              >
-                <Image
-                  alt="打开信封"
-                  className="object-contain drop-shadow-[0_10px_16px_rgba(20,53,104,0.35)]"
-                  fill
-                  priority
-                  sizes="(max-width: 640px) 72px, (max-width: 768px) 82px, 92px"
-                  src="/sealing_wax.png"
-                />
-              </motion.button>
-
-              {/* 点击提示 — 呼吸闪烁 */}
-              <motion.p
-                className="absolute inset-x-0 -bottom-10 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
-                initial={{ opacity: 0, y: 6 }}
-                animate={
-                  isIdle
-                    ? { opacity: [0.35, 0.65, 0.35], y: 0 }
-                    : { opacity: 0, y: 6 }
-                }
-                transition={
-                  isIdle
-                    ? {
-                        opacity: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' },
-                        y: { duration: 0.5, ease: 'easeOut' },
-                      }
-                    : { duration: 0.3 }
-                }
-              >
-                点击开启
-              </motion.p>
             </motion.div>
           </motion.div>
         </div>
+
+        {/* 点击提示 — 呼吸闪烁 (移到信封外部避免被壳体下落带走) */}
+        <motion.p
+          className="absolute bottom-[12%] left-1/2 z-10 -translate-x-1/2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
+          initial={{ opacity: 0, y: 6 }}
+          animate={
+            isIdle
+              ? { opacity: [0.35, 0.65, 0.35], y: 0 }
+              : { opacity: 0, y: 6 }
+          }
+          transition={
+            isIdle
+              ? {
+                  opacity: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' },
+                  y: { duration: 0.5, ease: 'easeOut' },
+                }
+              : { duration: 0.3 }
+          }
+        >
+          点击开启
+        </motion.p>
       </section>
-    </motion.div>
+    </div>
   );
 }
