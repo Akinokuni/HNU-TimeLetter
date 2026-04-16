@@ -9,6 +9,7 @@ import { EnvelopeIntro } from '@/components/shared/EnvelopeIntro';
 import { InteractiveMap } from '@/components/desktop/InteractiveMap';
 import { MobileExperience } from '@/components/mobile/MobileExperience';
 import { ScrollSections } from '@/components/sections/ScrollSections';
+import { Footer } from '@/components/sections/Footer';
 
 export default function Home() {
   const { isEnvelopeOpened } = useAppStore();
@@ -30,9 +31,9 @@ export default function Home() {
   }
 
   return (
-    <main className="page-paper relative w-full min-h-screen">
-      {/* 全局背景噪音与光效 (Persistent Background) */}
-      <div className="fixed inset-0 opacity-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply z-0" />
+    <main className="relative w-full min-h-screen">
+      {/* ── 页脚：固定在视口底部 z-0，被上方内容遮盖 ── */}
+      <Footer />
 
       <AnimatePresence mode="wait">
         {!isEnvelopeOpened ? (
@@ -40,14 +41,18 @@ export default function Home() {
           <motion.div
             key="intro-flow"
             className="relative w-full"
+            style={{ zIndex: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1, ease: 'easeInOut' }}
           >
-            {/* 首屏：信封 */}
+            {/* 首屏：信封 — EnvelopeIntro 自带 page-paper 背景 */}
             <EnvelopeIntro />
 
-            {/* 下滚页面群：关于企划 → 关于我们 → 鸣谢 → 页脚 */}
+            {/* 下滚页面群 — ScrollSections 自带 page-paper 背景 */}
             <ScrollSections />
+
+            {/* 页脚占位空间 — 无背景，让固定页脚从下方"揭露" */}
+            <FooterSpacer />
           </motion.div>
         ) : (
           /* ── 主体验：地图 / 集邮册 ── */
@@ -64,4 +69,27 @@ export default function Home() {
       </AnimatePresence>
     </main>
   );
+}
+
+/**
+ * 页脚占位组件：测量固定页脚高度，在文档流中腾出相同空间。
+ * 滚动到此区域时，固定页脚从底部被"揭露"。
+ * 注意：不设置背景色，保持透明，让下方固定页脚可见。
+ */
+function FooterSpacer() {
+  const [h, setH] = useState(0);
+
+  useEffect(() => {
+    const footer = document.querySelector('footer');
+    if (!footer) return;
+
+    const measure = () => setH(footer.offsetHeight);
+    measure();
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(footer);
+    return () => ro.disconnect();
+  }, []);
+
+  return <div style={{ height: h }} aria-hidden="true" />;
 }

@@ -158,20 +158,7 @@
     min-height: 100vh;
     position: relative;
     isolation: isolate;
-    background:
-      radial-gradient(circle at top, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 42%),
-      linear-gradient(135deg, #efe9e3 0%, #ece9e4 50%, #e7e0d8 100%);
-  }
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 34%),
-      radial-gradient(circle at 18% 12%, rgba(255, 255, 255, 0.4), transparent 24%),
-      radial-gradient(circle at 82% 0%, rgba(194, 54, 67, 0.08), transparent 22%);
-    z-index: -1;
+    background: #ece9e4;
   }
   ::selection {
     background: var(--primary-soft);
@@ -191,9 +178,7 @@
   }
 
   .page-paper {
-    background:
-      radial-gradient(circle at top, rgba(255, 255, 255, 0.58) 0%, rgba(255, 255, 255, 0) 42%),
-      linear-gradient(135deg, #efe9e3 0%, #ece9e4 52%, #e7e0d8 100%);
+    background: #ece9e4;
   }
   .paper-panel {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(246, 241, 235, 0.96) 100%);

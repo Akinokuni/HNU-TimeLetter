@@ -89,9 +89,6 @@ function TwistedRibbon() {
         xmlns="http://www.w3.org/2000/svg"
       >
         <defs>
-          <filter id="hero-ribbon-shadow" x="-20%" y="-5%" width="160%" height="110%">
-            <feDropShadow dx="6" dy="0" stdDeviation="12" floodColor="#7A1623" floodOpacity="0.18" />
-          </filter>
           <linearGradient
             gradientUnits="userSpaceOnUse"
             id="hero-ribbon-bottom"
@@ -117,7 +114,7 @@ function TwistedRibbon() {
             <stop offset="1" stopColor="#7A1623" />
           </linearGradient>
         </defs>
-        <g filter="url(#hero-ribbon-shadow)">
+        <g>
           <path
             d="M50 540C75 675 100 810 100 1080H0C0 810 25 675 50 540Z"
             fill="url(#hero-ribbon-bottom)"
@@ -165,6 +162,39 @@ function calcLetterScale(): number {
   return Math.max(scaleX, scaleY);
 }
 
+/**
+ * 计算信纸从当前位置移到视口正中心所需的偏移量
+ */
+function calcLetterCenterOffset(): { x: number; y: number } {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // 信封在不同断点的宽度
+  let envelopeWidth = 595;
+  if (vw < 640) envelopeWidth = 280;
+  else if (vw < 768) envelopeWidth = 360;
+  else if (vw < 1024) envelopeWidth = 480;
+
+  const envelopeHeight = envelopeWidth * (397 / 595);
+
+  // 信封在五列网格中的位置：col-start-3 col-span-3，mx-auto
+  // 信封中心大约在视口的 (3/5 + 3/10) * vw = 0.6 * vw 处（第3-5列中心）
+  // 更精确：网格5列等分，第3列起始 = 2/5 * vw，跨3列中心 = (2/5 + 3/10) * vw = 7/10 * vw
+  // 但 mx-auto 会让信封在这3列中居中
+  const gridColStart = (2 / 5) * vw;
+  const gridColSpan = (3 / 5) * vw;
+  const envelopeCenterX = gridColStart + gridColSpan / 2;
+  const envelopeCenterY = vh / 2;
+
+  const viewportCenterX = vw / 2;
+  const viewportCenterY = vh / 2;
+
+  return {
+    x: viewportCenterX - envelopeCenterX,
+    y: viewportCenterY - envelopeCenterY,
+  };
+}
+
 /* ────────────────────────────────────────────
  * 主组件
  * ──────────────────────────────────────────── */
@@ -201,8 +231,12 @@ export function EnvelopeIntro() {
         return;
       }
 
-      // 信封入场：使用 spring 物理弹簧实现丝滑下落
-      // 从屏幕上方 120% 处下落，带微小摇摆
+      // 丝带先出现（clip-path CSS 动画 1.4s），信封延迟 1.5s 后飘落
+      await sleep(1500);
+      if (cancelled || phaseRef.current === 'opening') return;
+
+      // 信封入场：使用 spring 物理弹簧实现丝滑飘落
+      // 从屏幕上方 120% 处下落，带左右摇摆的飘落感
       await envelopeControls.start({
         y: 0,
         x: 0,
@@ -211,10 +245,10 @@ export function EnvelopeIntro() {
         rotateZ: 0,
         transition: {
           type: 'spring',
-          stiffness: 45,
-          damping: 14,
-          mass: 1.2,
-          opacity: { duration: 0.4, ease: 'easeOut' },
+          stiffness: 30,
+          damping: 12,
+          mass: 1.5,
+          opacity: { duration: 0.6, ease: 'easeOut' },
         },
       });
 
@@ -276,11 +310,21 @@ export function EnvelopeIntro() {
     });
     await sleep(700);
 
-    // 3. 信纸放大铺满屏幕 (0.9s)
+    // 3. 信纸先移到视口正中心 (0.5s)，再放大铺满屏幕 (0.9s)
+    const centerOffset = calcLetterCenterOffset();
+    void openControls.start({
+      x: centerOffset.x,
+      y: centerOffset.y,
+      transition: {
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    });
+    await sleep(500);
+
     const targetScale = calcLetterScale();
     void openControls.start({
       scale: targetScale,
-      y: 0,
       transition: {
         duration: 0.9,
         ease: [0.4, 0, 0.2, 1],
@@ -300,10 +344,7 @@ export function EnvelopeIntro() {
   return (
     <div className="page-paper relative w-full z-50">
       <section className="relative h-screen w-full overflow-hidden">
-        {/* 背景噪点纹理 */}
-        <div className="pointer-events-none absolute inset-0 opacity-25 mix-blend-multiply bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-        {/* 背景光晕 */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.45),rgba(255,255,255,0)_28%),radial-gradient(circle_at_82%_50%,rgba(255,255,255,0.22),rgba(255,255,255,0)_26%),linear-gradient(135deg,rgba(255,255,255,0.18),rgba(194,54,67,0.04))]" />
+        {/* 背景：纯色 #ece9e4 由 page-paper 提供 */}
 
         {/* 五列网格主布局 */}
         <div className="relative z-10 grid h-full w-full grid-cols-5 items-center">
@@ -345,7 +386,7 @@ export function EnvelopeIntro() {
           {/* ── 第3~5列：信封 ── */}
           <motion.div
             className="relative col-span-3 col-start-3 mx-auto aspect-[595/397] w-[280px] perspective-1000 sm:w-[360px] md:w-[480px] lg:w-[595px]"
-            initial={{ y: '-120vh', opacity: 0, rotateX: 6, rotateZ: -3 }}
+            initial={{ y: '-120vh', opacity: 0, rotateX: 6, rotateZ: -5 }}
             animate={envelopeControls}
             style={{ transformOrigin: '50% 50%' }}
           >
@@ -408,7 +449,7 @@ export function EnvelopeIntro() {
                   <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
                 </motion.div>
 
-                {/* 火漆印按钮 — hover 仅微旋，不缩放 */}
+                {/* 火漆印按钮 — 静态固定在信封上，逆时针5°倾角 */}
                 {!isShattered && (
                   <motion.button
                     className={cn(
@@ -417,10 +458,7 @@ export function EnvelopeIntro() {
                       isOpening && 'pointer-events-none'
                     )}
                     onClick={handleOpen}
-                    initial={{ opacity: 1, scale: 1 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    whileHover={{ rotate: 2 }}
-                    whileTap={{ scale: 0.96 }}
+                    style={{ rotate: '-5deg' }}
                   >
                     <Image
                       alt="打开信封"
@@ -469,9 +507,9 @@ export function EnvelopeIntro() {
           </motion.div>
         </div>
 
-        {/* 点击提示 — 呼吸闪烁 (移到信封外部避免被壳体下落带走) */}
+        {/* 点击提示 — 呼吸闪烁 (定位在信封正下方，水平对齐信封中心) */}
         <motion.p
-          className="absolute bottom-[12%] left-1/2 z-10 -translate-x-1/2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
+          className="absolute bottom-[3%] left-[70%] z-10 -translate-x-1/2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
           initial={{ opacity: 0, y: 6 }}
           animate={
             isIdle

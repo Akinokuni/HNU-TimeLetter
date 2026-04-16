@@ -6,13 +6,17 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  * 红色引导线 (Red Guide Line)
  *
  * 横跨"关于企划"→"关于我们"→"鸣谢"三个页面的 #c23643 折线。
- * - 宽度 100px，圆角端点，图层位于最底层（z-index: 1）
+ * - 宽度 100px，圆角端点
+ * - 图层位于文字下方、背景上方（z-index: 1）
+ * - 6个点构成一条完整连续折线（点4→点5跨越"关于我们"页面）
  * - 使用 stroke-dasharray / stroke-dashoffset 实现描边曝光动画
  * - 非可逆单向线性插值：向下滚动时正向曝光，向上回滚时冻结在历史最远端
  *
  * 路径坐标（占比，相对各页面左上角 0%,0%）：
  *   关于企划页：P1(17.396%,0%) → P2(17.396%,0.5%) → P3(19.15%,7.50%) → P4(107.5%,40.43%)
  *   鸣谢页：    P5(-2.19%,65.40%) → P6(32%,126.27%)
+ *
+ * 注意：P4→P5 是跨越"关于我们"整个页面的连续折线段。
  */
 
 interface GuideLineProps {
@@ -24,7 +28,7 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const pathRef = useRef<SVGPathElement>(null);
   const [pathD, setPathD] = useState('');
-  const [svgStyle, setSvgStyle] = useState<React.CSSProperties>({});
+  const [svgDimensions, setSvgDimensions] = useState({ top: 0, height: 0 });
   const totalLengthRef = useRef(0);
   const cachedMaxProgress = useRef(0);
 
@@ -33,32 +37,38 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
    */
   const recalculate = useCallback(() => {
     const aboutProject = sectionRefs[0]?.current;
+    const aboutUs = sectionRefs[1]?.current;
     const credits = sectionRefs[2]?.current;
-    if (!aboutProject || !credits) return;
+    if (!aboutProject || !aboutUs || !credits) return;
 
     const vw = window.innerWidth;
 
-    // 获取 section 在文档中的绝对 Y 偏移
+    // 获取各 section 相对于 ScrollSections 容器的位置
+    const container = aboutProject.parentElement;
+    if (!container) return;
+    const containerRect = container.getBoundingClientRect();
+    const containerTop = containerRect.top + window.scrollY;
+
     const apRect = aboutProject.getBoundingClientRect();
-    const apTop = apRect.top + window.scrollY;
+    const apTop = apRect.top + window.scrollY - containerTop;
     const apH = apRect.height;
 
     const crRect = credits.getBoundingClientRect();
-    const crTop = crRect.top + window.scrollY;
+    const crTop = crRect.top + window.scrollY - containerTop;
     const crH = crRect.height;
 
-    // 计算绝对像素坐标
+    // 计算6个点的像素坐标（相对于容器）
     const p1 = { x: vw * 0.17396, y: apTop };
     const p2 = { x: vw * 0.17396, y: apTop + apH * 0.005 };
     const p3 = { x: vw * 0.1915, y: apTop + apH * 0.075 };
     const p4 = { x: vw * 1.075, y: apTop + apH * 0.4043 };
-
+    // P5 在鸣谢页（跨越了关于我们页面）
     const p5 = { x: vw * -0.0219, y: crTop + crH * 0.654 };
     const p6 = { x: vw * 0.32, y: crTop + crH * 1.2627 };
 
-    // SVG 定位：从 aboutProject 顶部到 P6 底部
-    const svgTop = apTop;
-    const svgBottom = p6.y + 100; // 额外边距
+    // SVG 覆盖范围：从 P1 到 P6
+    const svgTop = Math.min(p1.y, p2.y) - 60; // 上方留出 stroke 宽度余量
+    const svgBottom = p6.y + 60;
     const svgHeight = svgBottom - svgTop;
 
     // 所有 Y 坐标相对于 SVG 顶部
@@ -74,32 +84,23 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const lp5 = toLocal(p5);
     const lp6 = toLocal(p6);
 
+    // 一条完整连续折线：P1→P2→P3→P4→P5→P6
     const d = [
       `M ${lp1.x} ${lp1.y}`,
       `L ${lp2.x} ${lp2.y}`,
       `L ${lp3.x} ${lp3.y}`,
       `L ${lp4.x} ${lp4.y}`,
-      `M ${lp5.x} ${lp5.y}`,
+      `L ${lp5.x} ${lp5.y}`,
       `L ${lp6.x} ${lp6.y}`,
     ].join(' ');
 
     setPathD(d);
-    setSvgStyle({
-      position: 'absolute',
-      top: apTop,
-      left: 0,
-      width: '100%',
-      height: svgHeight,
-      pointerEvents: 'none',
-      zIndex: 1,
-      overflow: 'visible',
-    });
+    setSvgDimensions({ top: svgTop, height: svgHeight });
   }, [sectionRefs]);
 
   // 初始化 + resize 时重新计算路径
   useEffect(() => {
-    // 延迟首次计算，等待布局稳定
-    const timer = setTimeout(recalculate, 100);
+    const timer = setTimeout(recalculate, 200);
     window.addEventListener('resize', recalculate);
     return () => {
       clearTimeout(timer);
@@ -111,7 +112,6 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
   useEffect(() => {
     if (pathRef.current && pathD) {
       totalLengthRef.current = pathRef.current.getTotalLength();
-      // 初始隐藏：dashoffset = totalLength
       pathRef.current.style.strokeDasharray = `${totalLengthRef.current}`;
       pathRef.current.style.strokeDashoffset = `${totalLengthRef.current}`;
     }
@@ -137,7 +137,6 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       const scrollY = window.scrollY;
       const vp = window.innerHeight;
 
-      // 引导线可视区域：从关于企划页顶部进入视口开始，到鸣谢页底部离开
       const apRect = aboutProject.getBoundingClientRect();
       const crRect = credits.getBoundingClientRect();
       const startY = apRect.top + scrollY - vp;
@@ -146,7 +145,7 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       // 计算线性进度 0→1
       const rawProgress = Math.max(0, Math.min(1, (scrollY - startY) / (endY - startY)));
 
-      // 非可逆：只取历史最大值
+      // 非可逆：只取历史最大值（Math.max(cachedMaxScroll, currentScroll) 算法）
       cachedMaxProgress.current = Math.max(cachedMaxProgress.current, rawProgress);
 
       const offset = totalLengthRef.current * (1 - cachedMaxProgress.current);
@@ -164,7 +163,16 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
   return (
     <svg
       ref={svgRef}
-      style={svgStyle}
+      style={{
+        position: 'absolute',
+        top: svgDimensions.top,
+        left: 0,
+        width: '100%',
+        height: svgDimensions.height,
+        pointerEvents: 'none',
+        zIndex: 1,
+        overflow: 'visible',
+      }}
       aria-hidden="true"
     >
       <path

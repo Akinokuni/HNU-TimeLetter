@@ -22,6 +22,12 @@ export function useVirtualScroll(enabled = true) {
   useEffect(() => {
     if (!enabled) return;
 
+    // 隐藏原生滚动条（避免双滚动条），但保留滚动能力
+    document.documentElement.style.scrollbarWidth = 'none';
+    const styleEl = document.createElement('style');
+    styleEl.textContent = '::-webkit-scrollbar { display: none !important; }';
+    document.head.appendChild(styleEl);
+
     const LERP = 0.1; // 阻尼系数：越小越丝滑，越大越跟手
     let lastScrollToY = -1;
 
@@ -72,6 +78,9 @@ export function useVirtualScroll(enabled = true) {
       window.removeEventListener('wheel', handleWheel);
       window.removeEventListener('scroll', handleScroll);
       cancelAnimationFrame(rafId.current);
+      // 恢复原生滚动条
+      document.documentElement.style.scrollbarWidth = '';
+      styleEl.remove();
     };
   }, [enabled]);
 
