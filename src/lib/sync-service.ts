@@ -4,23 +4,13 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import OSS from 'ali-oss';
 import type { CreationIdea, LocationPoint, Story } from './types';
+import type { FeishuAttachment, FeishuRecord } from './feishu-types';
 import locationsConfig from '../config/locations.json';
 
 // Ensure env is loaded
 config({ path: path.resolve(process.cwd(), '.env.local') });
 
 type LocationCoords = Record<string, { name: string; x: number; y: number }>;
-
-type FeishuAttachment = {
-  file_token?: string;
-  token?: string;
-  name?: string;
-};
-
-type FeishuRecord = {
-  record_id: string;
-  fields: Record<string, unknown>;
-};
 
 type SyncConfig = {
   feishuAppId?: string;
@@ -472,7 +462,9 @@ const feishuClient = {
         (data.data.items as FeishuRecord[]).forEach((item) => {
           const fields = item.fields;
           const id = getText(fields['地点ID']);
-          console.log(`  - 记录ID: ${item.record_id}, 地点ID: ${id}, 名称: ${fields['地点名称']}`);
+          console.log(
+            `  - 记录ID: ${item.record_id}, 地点ID: ${id}, 名称: ${getText(fields['地点名称'])}`
+          );
 
           if (!id) {
             console.warn(`  ⚠️ 记录 ${item.record_id} 缺少 '地点ID' 字段`);
@@ -485,6 +477,13 @@ const feishuClient = {
             y: Number(fields['坐标Y(%)']) || 0,
           };
         });
+      }
+
+      // 防御：飞书返回空数据时（视图为空 / 权限异常但仍返回 code: 0 / 字段名变更），
+      // 不要把 locations.json 覆盖成 {}，否则种子配置会丢失，只能靠 git 找回。
+      if (Object.keys(newLocations).length === 0) {
+        console.warn('⚠️ 飞书未返回任何有效地点记录，保留现有 locations.json 配置');
+        return locationsConfig as LocationCoords;
       }
 
       fileWriter.writeLocationConfig(newLocations);
@@ -548,14 +547,18 @@ const dataTransformer = {
   async transformRecords(token: string, feishuRecords: FeishuRecord[], coords: LocationCoords): Promise<LocationPoint[]> {
     const storiesMap = new Map<string, Story[]>();
     const BATCH_SIZE = 5;
+    let okCount = 0;
+    let failCount = 0;
+    let skippedCount = 0;
 
     for (let i = 0; i < feishuRecords.length; i += BATCH_SIZE) {
       const batch = feishuRecords.slice(i, i + BATCH_SIZE);
 
-      await Promise.all(
-        batch.map(async (record) => {
+      // 使用 allSettled：单条记录失败不影响同批其它记录，也不会直接终止整个同步流程。
+      const results = await Promise.allSettled(
+        batch.map(async (record): Promise<{ skipped: true } | { skipped: false; story: Story }> => {
           const fields = record.fields;
-          if (!fields['角色ID'] || !fields['故事内容']) return;
+          if (!fields['角色ID'] || !fields['故事内容']) return { skipped: true };
 
           console.log(`\n📝 处理记录: ${getText(fields['角色名'])} - ${record.record_id}`);
 
@@ -604,13 +607,42 @@ const dataTransformer = {
             locationId: getText(fields['地点ID']),
           };
 
-          if (!storiesMap.has(story.locationId)) {
-            storiesMap.set(story.locationId, []);
-          }
-          storiesMap.get(story.locationId)!.push(story);
+          return { skipped: false, story };
         })
       );
+
+      // 按照输入记录的顺序 push 到 storiesMap，保证多次运行输出稳定，
+      // 避免附件上传延迟不同导致 content.json 的 diff 抖动。
+      results.forEach((result, idx) => {
+        const record = batch[idx];
+        if (result.status === 'rejected') {
+          failCount += 1;
+          console.error(`  ❌ 记录 ${record.record_id} 处理失败:`, result.reason);
+          return;
+        }
+
+        if (result.value.skipped) {
+          skippedCount += 1;
+          return;
+        }
+
+        const { story } = result.value;
+        if (!storiesMap.has(story.locationId)) {
+          storiesMap.set(story.locationId, []);
+        }
+        storiesMap.get(story.locationId)!.push(story);
+        okCount += 1;
+      });
     }
+
+    console.log(
+      `\n📊 故事记录汇总: 成功 ${okCount} 条，跳过 ${skippedCount} 条，失败 ${failCount} 条`
+    );
+
+    // 最后一轮稳定排序：按故事 id（= record_id）保证同输入→同输出。
+    storiesMap.forEach((stories) => {
+      stories.sort((a, b) => a.id.localeCompare(b.id));
+    });
 
     const locations: LocationPoint[] = [];
     const allLocationIds = new Set([...Object.keys(coords), ...storiesMap.keys()]);
@@ -644,11 +676,13 @@ const dataTransformer = {
     const contentTypeFieldName = '请选择你要添加的内容（该表可重复提交，如需填写多项，请再次提交）';
     const BATCH_SIZE = 5;
     const ideas: CreationIdea[] = [];
+    let failCount = 0;
 
     for (let i = 0; i < feishuRecords.length; i += BATCH_SIZE) {
       const batch = feishuRecords.slice(i, i + BATCH_SIZE);
 
-      const processedBatch = await Promise.all(
+      // 同样改为 allSettled：单条创作记录失败（飞书 502 / 附件挂掉）不应终止整次同步。
+      const processedBatch = await Promise.allSettled(
         batch.map(async (record) => {
           const fields = record.fields;
           const cardId = getText(fields['CardID']) || getText(fields['自动编号']) || record.record_id;
@@ -697,7 +731,18 @@ const dataTransformer = {
         })
       );
 
-      ideas.push(...processedBatch);
+      processedBatch.forEach((result, idx) => {
+        if (result.status === 'rejected') {
+          failCount += 1;
+          console.error(`  ❌ 创作记录 ${batch[idx].record_id} 处理失败:`, result.reason);
+          return;
+        }
+        ideas.push(result.value);
+      });
+    }
+
+    if (failCount > 0) {
+      console.warn(`⚠️ 创作记录汇总: 失败 ${failCount} 条（已跳过，未终止同步）`);
     }
 
     ideas.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

@@ -46,6 +46,12 @@ export function MobileDetailModal({
   const [controlsVisible, setControlsVisible] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
   const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+
+  const resetTouchRefs = () => {
+    touchStartXRef.current = null;
+    touchStartYRef.current = null;
+  };
 
   // 1s 自动淡出逻辑
   useEffect(() => {
@@ -160,19 +166,38 @@ export function MobileDetailModal({
           <div 
             className="px-8 pt-8 pb-32 flex flex-col"
             onTouchStart={(e) => {
+              // 多指手势（缩放 / 翻页）不应被判定为地点切换，直接忽略。
+              if (e.touches.length !== 1) {
+                resetTouchRefs();
+                return;
+              }
               touchStartXRef.current = e.touches[0]?.clientX ?? null;
+              touchStartYRef.current = e.touches[0]?.clientY ?? null;
             }}
             onTouchEnd={(e) => {
               const startX = touchStartXRef.current;
+              const startY = touchStartYRef.current;
               const endX = e.changedTouches[0]?.clientX;
-              if (startX == null || endX == null) return;
+              const endY = e.changedTouches[0]?.clientY;
+              resetTouchRefs();
+              if (startX == null || startY == null || endX == null || endY == null) return;
 
               const deltaX = endX - startX;
-              if (deltaX > 80 && hasPrevLocation && onPrevLocation) onPrevLocation();
-              else if (deltaX < -80 && hasMoreLocation && onNextLocation) onNextLocation();
+              const deltaY = endY - startY;
+              const absX = Math.abs(deltaX);
+              const absY = Math.abs(deltaY);
 
-              touchStartXRef.current = null;
+              // 水平主导性校验：只有当横向位移足够大且显著大于纵向位移时才触发地点切换，
+              // 避免与外层 framer-motion 的竖向下拉关闭手势相互干扰（斜拖会双触发）。
+              const HORIZONTAL_THRESHOLD = 80;
+              const DOMINANCE_RATIO = 1.5;
+              if (absX < HORIZONTAL_THRESHOLD) return;
+              if (absX < absY * DOMINANCE_RATIO) return;
+
+              if (deltaX > 0 && hasPrevLocation && onPrevLocation) onPrevLocation();
+              else if (deltaX < 0 && hasMoreLocation && onNextLocation) onNextLocation();
             }}
+            onTouchCancel={resetTouchRefs}
           >
             <div className="flex items-center gap-5 mb-8">
               <motion.div key={`avatar-${story.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-16 h-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex-shrink-0">
