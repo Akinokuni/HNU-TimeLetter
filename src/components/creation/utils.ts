@@ -14,7 +14,7 @@ export function groupIdeasToCards(ideas: CreationIdea[]): CreationCard[] {
       id: idea.id,
       cardId: idea.cardId,
       author: idea.author,
-      tags: idea.tags[0] ?? '',
+      tags: idea.tags,
       content: idea.content,
       images: idea.images,
       createdAt: idea.createdAt,

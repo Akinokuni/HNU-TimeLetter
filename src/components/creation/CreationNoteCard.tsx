@@ -14,7 +14,7 @@ export default function CreationNoteCard({ card }: CreationNoteCardProps) {
 
   return (
     <div
-      className="relative break-inside-avoid mb-5 group
+      className="relative break-inside-avoid mb-5
                  transition-all duration-200 ease-out"
       style={{
         backgroundColor: bgColor,
@@ -34,22 +34,26 @@ export default function CreationNoteCard({ card }: CreationNoteCardProps) {
         e.currentTarget.style.boxShadow = '2px 3px 12px rgba(69,39,40,0.08)';
       }}
     >
-      {/* 右上角「新增创意」按钮 */}
-      <a
-        href={card.addIdeaUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute top-2 right-2 z-10 text-[10px] leading-none px-2 py-1
-                   bg-primary/80 text-primary-foreground
-                   opacity-0 group-hover:opacity-100 transition-opacity duration-200
-                   hover:bg-primary"
-        style={{ borderRadius: '9999px' }}
-      >
-        + 新增创意
-      </a>
+      {/* 顶部按钮区：独立占位，避免压住第一条 entry 的 tag */}
+      <div className="flex justify-end px-4 pt-3 pb-1">
+        <a
+          href={card.addIdeaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 whitespace-nowrap
+                     border border-black/[0.08] bg-white/92 px-3 py-1.5
+                     text-[11px] leading-none text-ink
+                     shadow-[0_2px_6px_rgba(69,39,40,0.08)]
+                     transition-colors duration-150 hover:bg-white"
+          style={{ borderRadius: 0 }}
+        >
+          <span className="text-[12px] leading-none">+</span>
+          <span>新增创意</span>
+        </a>
+      </div>
 
       {/* 卡片内部堆叠项 */}
-      <div className="pt-2">
+      <div className="pt-1">
         {card.entries.map((entry, idx) => (
           <CreationNoteEntry
             key={entry.id}

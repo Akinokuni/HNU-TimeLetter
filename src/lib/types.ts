@@ -21,15 +21,12 @@ export interface Story {
 export interface CreationIdea {
   id: string;
   cardId: string;
-  title: string;
-  contentType: string;
   content: string;
   author: string;
+  submitter: string;
   images: string[];
   createdAt: string;
-  sourceIdeaId: string | null;
-  sourceIdeaTitle: string | null;
-  tags: string[];
+  tags: string;
 }
 
 // 创作公示板 — 卡片内部的一条原始记录展示项

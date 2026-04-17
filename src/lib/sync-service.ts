@@ -137,19 +137,6 @@ const extractUrlsFromText = (text: string): string[] => {
   return matches ? [...new Set(matches)] : [];
 };
 
-const deriveCreationTitle = (contentType: string, content: string, fallbackId: string, imageNames: string[]): string => {
-  const textWithoutUrls = content.replace(/https?:\/\/\S+/g, '').replace(/\s+/g, ' ').trim();
-  if (textWithoutUrls) {
-    return textWithoutUrls.length > 32 ? `${textWithoutUrls.slice(0, 32)}…` : textWithoutUrls;
-  }
-
-  if (imageNames.length > 0) {
-    return imageNames[0];
-  }
-
-  return `${contentType || '创作'} ${fallbackId}`;
-};
-
 const fileWriter = {
   writeLocationConfig(data: LocationCoords): void {
     const outputPath = path.resolve(process.cwd(), 'src/config/locations.json');
@@ -666,20 +653,19 @@ const dataTransformer = {
           const fields = record.fields;
           const cardId = getText(fields['CardID']) || getText(fields['自动编号']) || record.record_id;
           const contentType = getText(fields[contentTypeFieldName]);
-          const author = getText(fields['你的昵称']) || getPersonName(fields['提交人']);
+          const submitter = getPersonName(fields['提交人']);
+          const author = getText(fields['你的昵称']) || submitter;
           const existingText = getText(fields['文本']).trim();
-          const attachmentNames = getAttachments(fields['请上传你的图片']).map((attachment) => attachment.name || 'image.jpg');
+          const attachments = getAttachments(fields['请上传你的图片']);
 
           console.log(`\n📌 处理创作记录: ${cardId} (${contentType || '未分类'})`);
 
           let imageUrls = extractUrlsFromText(existingText);
-          let imageNames = attachmentNames;
 
-          if (fields['请上传你的图片'] && imageUrls.length < attachmentNames.length) {
+          if (attachments.length > 0 && imageUrls.length < attachments.length) {
             console.log('  📥 处理参考图附件...');
             const result = await processAttachments(token, fields['请上传你的图片'], '创作公示板参考图', record.record_id);
             imageUrls = [...new Set([...imageUrls, ...result.urls])];
-            imageNames = result.names.length > 0 ? result.names : attachmentNames;
           }
 
           const mergedText = mergeTextWithUrls(existingText, imageUrls);
@@ -701,15 +687,12 @@ const dataTransformer = {
           return {
             id: record.record_id,
             cardId,
-            title: deriveCreationTitle(contentType, mergedText || existingText, cardId, imageNames),
-            contentType,
             content: mergedText || existingText,
             author,
+            submitter,
             images: imageUrls,
             createdAt: formatDateTime(fields['提交时间']),
-            sourceIdeaId: null,
-            sourceIdeaTitle: null,
-            tags: contentType ? [contentType] : [],
+            tags: contentType,
           } satisfies CreationIdea;
         })
       );
