@@ -8,17 +8,23 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  * 横跨"关于企划"→"关于我们"→"鸣谢"三个页面的 #c23643 折线。
  * - 宽度 100px，圆角端点
  * - 图层位于文字下方、背景上方（z-index: 1）
- * - 6个点构成一条完整连续折线（点4→点5跨越"关于我们"页面）
+ * - 完整连续折线（P4→P5 跨越"关于我们"页面）
  * - 使用 stroke-dasharray / stroke-dashoffset 实现描边曝光动画
  * - 非可逆单向线性插值：向下滚动时正向曝光，向上回滚时冻结在历史最远端
  *
- * 路径坐标（占比，相对各页面左上角 0%,0%）：
- *   关于企划页：P0(17.396%,-20%) → P1(17.396%,0%) → P2(17.396%,5%) → P3(19.15%,7.50%) → P4(107.5%,40.43%)
- *   鸣谢页：    P5(-2.19%,65.40%) → P6(32%,150%)
+ * 路径坐标（相对占比）：
+ *   首屏衔接：PH (ribbonX, -apH) 丝带中心正上方（在首屏顶部），被首屏 page-paper 遮盖
+ *   关于企划页：P1(ribbonX,0%) → P2(ribbonX,10%) → P3(19.15%,12.5%) → P4(107.5%,40.43%)
+ *   鸣谢页：    P5(-2.19%,65.40%) → P6(32%,200%)
  *
- * P0 在首页上方，与丝带（ribbon）自然衔接，被首屏 page-paper 遮盖，滚动时逐步曝光。
- * P6 延伸进页脚红色区域，确保引导线尾部与页脚衔接。
- * 注意：P4→P5 是跨越"关于我们"整个页面的连续折线段。
+ * 衔接细节：
+ *  - PH→P1：一条贯穿整个首屏的竖直段，使引导线与丝带底部自然对接。
+ *    由于引导线 SVG 的 zIndex 低于首屏 (z-50)，PH 到首屏范围的线段被首屏页面遮盖，
+ *    滚动离开首屏后，下方 P1→P2 的竖直段才会显露，从丝带结束的位置"自然延续"下来。
+ *  - ribbonX 使用 20%vw - 50px 动态计算（对应丝带 100px 宽容器 + col-start-1 justify-end），
+ *    保证在所有屏幕尺寸下都与丝带中心精确对齐。
+ *  - P6 延伸至鸣谢页 200%（100vh 以下），视觉上伸入页脚红色区域。
+ *  - P4→P5 是跨越"关于我们"整个页面的连续折线段。
  */
 
 interface GuideLineProps {
@@ -59,21 +65,26 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const crTop = crRect.top + window.scrollY - containerTop;
     const crH = crRect.height;
 
-    // 计算7个点的像素坐标（相对于容器）
-    // P0: 在"关于企划"上方 20%，衔接首页丝带（被首屏遮盖，滚动时渐露）
-    const p0 = { x: vw * 0.17396, y: apTop - apH * 0.20 };
-    const p1 = { x: vw * 0.17396, y: apTop };
-    // P2: 竖直段下延至 5%（原 0.5% 太短，无法形成与丝带的自然衔接）
-    const p2 = { x: vw * 0.17396, y: apTop + apH * 0.05 };
-    const p3 = { x: vw * 0.1915, y: apTop + apH * 0.075 };
+    // 丝带水平中心：丝带位于 col-start-1（0~20%vw）的 flex justify-end 内，宽 100px。
+    // 所以丝带中心 x = 20%vw - 50px（响应式，任意屏宽均与丝带精确对齐）。
+    const ribbonX = vw * 0.2 - 50;
+
+    // 计算路径各点的像素坐标（相对于 ScrollSections 容器）
+    // PH: 丝带中心正上方，与首屏顶部对齐（y = apTop - apH = 0），被首屏 z-50 遮盖
+    //     — 提供从"首屏之上"贯穿首屏的竖直延伸，保证离开首屏后引导线从丝带底部自然衔接。
+    const pH = { x: ribbonX, y: apTop - apH };
+    const p1 = { x: ribbonX, y: apTop };
+    // P2: 竖直段下延至 10% apH —— 留出明显的一段"先竖直再转弯"
+    const p2 = { x: ribbonX, y: apTop + apH * 0.10 };
+    const p3 = { x: vw * 0.1915, y: apTop + apH * 0.125 };
     const p4 = { x: vw * 1.075, y: apTop + apH * 0.4043 };
     // P5 在鸣谢页（跨越了关于我们页面）
     const p5 = { x: vw * -0.0219, y: crTop + crH * 0.654 };
-    // P6: 延伸至鸣谢页 150%，确保尾部伸入页脚红色区域
-    const p6 = { x: vw * 0.32, y: crTop + crH * 1.50 };
+    // P6: 延伸至鸣谢页 200% 位置（100vh 以下），视觉上伸入页脚红色区域
+    const p6 = { x: vw * 0.32, y: crTop + crH * 2.0 };
 
-    // SVG 覆盖范围：从 P0 到 P6
-    const svgTop = Math.min(p0.y, p1.y) - 60; // 上方留出 stroke 宽度余量
+    // SVG 覆盖范围：从 PH 到 P6
+    const svgTop = pH.y - 60; // 上方留出 stroke 宽度余量
     const svgBottom = p6.y + 60;
     const svgHeight = svgBottom - svgTop;
 
@@ -83,7 +94,7 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       y: p.y - svgTop,
     });
 
-    const lp0 = toLocal(p0);
+    const lpH = toLocal(pH);
     const lp1 = toLocal(p1);
     const lp2 = toLocal(p2);
     const lp3 = toLocal(p3);
@@ -91,9 +102,9 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const lp5 = toLocal(p5);
     const lp6 = toLocal(p6);
 
-    // 一条完整连续折线：P0→P1→P2→P3→P4→P5→P6
+    // 一条完整连续折线：PH→P1→P2→P3→P4→P5→P6
     const d = [
-      `M ${lp0.x} ${lp0.y}`,
+      `M ${lpH.x} ${lpH.y}`,
       `L ${lp1.x} ${lp1.y}`,
       `L ${lp2.x} ${lp2.y}`,
       `L ${lp3.x} ${lp3.y}`,

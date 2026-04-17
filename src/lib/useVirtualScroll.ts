@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import Lenis from 'lenis';
 
 /**
@@ -8,11 +8,10 @@ import Lenis from 'lenis';
  *
  * 使用 Lenis.js 替代自定义 wheel 拦截实现，提供丝滑惯性滚动体验。
  *
- * 配置参数来源：HIMEMATSU 参考站点（见 todo/滚动.md）
- *  - duration: 1.2（动画持续时间，越长越平滑）
- *  - easing: 指数缓动函数（开始迅速响应，结尾极其缓慢地停下）
- *  - wheelMultiplier: 1（鼠标滚轮灵敏度）
- *  - touchMultiplier: 2（触摸屏灵敏度）
+ * 配置参数与 todo/滚动.md 推荐值对齐：
+ *  - duration: 1.2
+ *  - easing: 经典指数缓动 Math.min(1, 1.001 - Math.pow(2, -10 * t))
+ *  - wheelMultiplier: 1, touchMultiplier: 2, smoothWheel: true
  *
  * Lenis 自动管理：
  *  - 滚轮事件拦截与平滑插值
@@ -20,20 +19,20 @@ import Lenis from 'lenis';
  *  - 键盘导航兼容
  *
  * 原生滚动条由 globals.css 中的 CSS 规则隐藏。
+ *
+ * 返回值：当前 Lenis 实例（可为 null）。外部组件（如 CustomScrollbar）
+ * 可通过实例上的 on('scroll', ...) 订阅实现与 Lenis 精确同步的自定义滑块。
  */
-export function useVirtualScroll(enabled = true) {
-  const lenisRef = useRef<Lenis | null>(null);
+export function useVirtualScroll(enabled = true): Lenis | null {
+  const [lenis, setLenis] = useState<Lenis | null>(null);
 
   useEffect(() => {
     if (!enabled) {
-      if (lenisRef.current) {
-        lenisRef.current.destroy();
-        lenisRef.current = null;
-      }
+      setLenis(null);
       return;
     }
 
-    const lenis = new Lenis({
+    const instance = new Lenis({
       duration: 1.2,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
@@ -41,20 +40,21 @@ export function useVirtualScroll(enabled = true) {
       touchMultiplier: 2,
     });
 
-    lenisRef.current = lenis;
+    setLenis(instance);
 
+    let rafId = 0;
     function raf(time: number) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
+      instance.raf(time);
+      rafId = requestAnimationFrame(raf);
     }
-
-    requestAnimationFrame(raf);
+    rafId = requestAnimationFrame(raf);
 
     return () => {
-      lenis.destroy();
-      lenisRef.current = null;
+      cancelAnimationFrame(rafId);
+      instance.destroy();
+      setLenis(null);
     };
   }, [enabled]);
 
-  return lenisRef;
+  return lenis;
 }

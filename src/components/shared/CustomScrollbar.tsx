@@ -1,0 +1,121 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import type Lenis from 'lenis';
+
+/**
+ * 自定义滑块 (Custom DOM Scrollbar)
+ *
+ * 复刻 todo/滚动.md 中所描述的简洁悬浮式滑块：
+ *  - 轨道 (.scrollbar)：固定在视口右侧，宽 15px，透明背景，z-index 1000
+ *  - 滑块 (.scrollbar-thumb)：宽 10px，主题色 #c23643，高度随页面比例动态计算
+ *  - 通过 Lenis 的 'scroll' 事件驱动滑块位移，保证平滑滚动与滑块同步
+ *  - 原生滚动条已在 globals.css 中隐藏
+ *
+ * 使用：在页面需要滚动时挂载；不需要时（如地图页）可通过 enabled=false 卸载。
+ *
+ * 注：滑块自身保留 pointer-events: auto 以支持未来的点击/拖拽，
+ *     轨道则 pointer-events: none，避免干扰页面其他交互。
+ */
+interface CustomScrollbarProps {
+  /** 是否启用滑块；false 时彻底不渲染 */
+  enabled?: boolean;
+  /** 可选的 Lenis 实例；若提供则通过 lenis.on('scroll') 驱动，否则使用 window 原生 scroll */
+  lenis?: Lenis | null;
+}
+
+export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollbarProps) {
+  const thumbRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const thumb = thumbRef.current;
+    if (!thumb) return;
+
+    // 滑块高度 = 视口高度 × (视口 / 总文档高度)
+    const updateThumbHeight = () => {
+      const scrollHeight = document.documentElement.scrollHeight;
+      const clientHeight = document.documentElement.clientHeight;
+      const heightRatio = Math.min(1, clientHeight / scrollHeight);
+      const h = Math.max(40, clientHeight * heightRatio);
+      thumb.style.height = `${h}px`;
+    };
+
+    // 滑块位移 = 进度 × (视口高度 - 滑块高度)
+    const updateThumbPosition = (scroll: number, limit: number) => {
+      const progress = limit > 0 ? scroll / limit : 0;
+      const maxTranslate = window.innerHeight - thumb.offsetHeight;
+      const translateY = Math.max(0, Math.min(maxTranslate, progress * maxTranslate));
+      thumb.style.transform = `translate3d(0, ${translateY}px, 0)`;
+    };
+
+    updateThumbHeight();
+    updateThumbPosition(window.scrollY, document.documentElement.scrollHeight - window.innerHeight);
+
+    // 轨道可见性：仅在页面可滚动时显示
+    const updateTrackVisibility = () => {
+      const track = trackRef.current;
+      if (!track) return;
+      const scrollable =
+        document.documentElement.scrollHeight - window.innerHeight > 1;
+      track.style.opacity = scrollable ? '1' : '0';
+    };
+    updateTrackVisibility();
+
+    // 监听尺寸 & 文档高度变化
+    const ro = new ResizeObserver(() => {
+      updateThumbHeight();
+      updateTrackVisibility();
+      updateThumbPosition(window.scrollY, document.documentElement.scrollHeight - window.innerHeight);
+    });
+    ro.observe(document.documentElement);
+    window.addEventListener('resize', updateThumbHeight);
+
+    // 滚动事件绑定：优先 Lenis，回退到原生
+    let unsubLenis: (() => void) | undefined;
+    if (lenis) {
+      const onLenisScroll = ({ scroll, limit }: { scroll: number; limit: number }) => {
+        updateThumbPosition(scroll, limit);
+      };
+      lenis.on('scroll', onLenisScroll);
+      unsubLenis = () => lenis.off('scroll', onLenisScroll);
+    } else {
+      const onNativeScroll = () => {
+        const limit = document.documentElement.scrollHeight - window.innerHeight;
+        updateThumbPosition(window.scrollY, limit);
+      };
+      window.addEventListener('scroll', onNativeScroll, { passive: true });
+      unsubLenis = () => window.removeEventListener('scroll', onNativeScroll);
+    }
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', updateThumbHeight);
+      if (unsubLenis) unsubLenis();
+    };
+  }, [enabled, lenis]);
+
+  if (!enabled) return null;
+
+  return (
+    <div
+      ref={trackRef}
+      aria-hidden="true"
+      className="fixed top-0 right-0 z-[1000] h-screen pointer-events-none transition-opacity duration-300"
+      style={{ width: '15px', backgroundColor: 'transparent' }}
+    >
+      <div
+        ref={thumbRef}
+        className="absolute top-0 pointer-events-auto"
+        style={{
+          right: '2.5px',
+          width: '10px',
+          backgroundColor: '#c23643',
+          borderRadius: '5px',
+          willChange: 'transform, height',
+        }}
+      />
+    </div>
+  );
+}
