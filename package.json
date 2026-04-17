@@ -2,6 +2,8 @@
   "name": "web",
   "version": "0.1.0",
   "private": true,
+  "description": "HNU TimeLetter interactive campus storytelling website and Feishu map editor",
+  "author": "TimeLetter Team",
   "scripts": {
     "dev": "next dev",
     "build": "npm run sync && next build",

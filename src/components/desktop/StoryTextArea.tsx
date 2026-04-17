@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
 import { Story } from '@/lib/types';
+import { getStoryAvatarUrl } from '@/lib/content';
 
 interface StoryTextAreaProps {
   story: Story;     // 当前展示的故事数据
@@ -45,7 +46,7 @@ export function StoryTextArea({ story, isVisible }: StoryTextAreaProps) {
             <div className="w-20 h-24 bg-white p-1 shadow-md border-[2px] border-gray-200 border-dotted">
               <div className="relative w-full h-full bg-gray-100 overflow-hidden">
                 <Image
-                  src={story.avatarUrl}
+                  src={getStoryAvatarUrl(story)}
                   alt={story.characterName}
                   fill
                   className="object-cover"

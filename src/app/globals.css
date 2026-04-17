@@ -149,24 +149,26 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   html {
     overflow-x: hidden;
     background: var(--background);
   }
+
   body {
-    @apply text-foreground overflow-x-hidden;
+    @apply overflow-x-hidden text-foreground;
     min-height: 100vh;
     position: relative;
     isolation: isolate;
     background: #ece9e4;
   }
+
   ::selection {
     background: var(--primary-soft);
     color: var(--ink-strong);
   }
 }
 
-/* ── Lenis 平滑滚动 ── */
 html.lenis,
 html.lenis body {
   height: auto;
@@ -188,7 +190,6 @@ html.lenis body {
   pointer-events: none;
 }
 
-/* 隐藏原生滚动条 — Lenis 接管滚动后不需要原生滚动条 */
 html.lenis {
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -199,7 +200,6 @@ html.lenis::-webkit-scrollbar {
 }
 
 @layer utilities {
-  /* 丝带 clip-path 显影动画 — 纯 CSS 过渡，性能优于 JS 驱动 */
   .hero-ribbon-clip {
     clip-path: inset(0% 0% 100% 0%);
   }
@@ -212,21 +212,39 @@ html.lenis::-webkit-scrollbar {
   .page-paper {
     background: #ece9e4;
   }
+
   .paper-panel {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72) 0%, rgba(246, 241, 235, 0.96) 100%);
     border: 1px solid rgba(203, 189, 181, 0.72);
     box-shadow: var(--paper-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.56);
     backdrop-filter: blur(14px);
   }
+
+  .grid-paper-board {
+    background-image:
+      linear-gradient(rgba(143, 117, 77, 0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(143, 117, 77, 0.1) 1px, transparent 1px);
+    background-size: 36px 36px;
+    background-position: -1px -1px;
+  }
+
+  .grain-paper {
+    background-image: url('/images/noise.svg');
+    background-size: 180px 180px;
+  }
+
   .perspective-1000 {
     perspective: 1000px;
   }
+
   .preserve-3d {
     transform-style: preserve-3d;
   }
+
   .backface-hidden {
     backface-visibility: hidden;
   }
+
   .rotate-x-180 {
     transform: rotateX(180deg);
   }

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useLayoutEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { MapPin, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import data from '@/data/content.json';
+import { useContainedMapSize } from '@/lib/hooks';
+import { getPrimaryStory, getStoryAvatarUrl } from '@/lib/content';
 
 interface StaticMapModalProps {
   isOpen: boolean;
@@ -18,36 +20,8 @@ interface StaticMapModalProps {
  */
 export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [mapAspect, setMapAspect] = useState<number | null>(null);
-
-  useLayoutEffect(() => {
-    if (!mapAspect) return;
-    const container = mapContainerRef.current;
-    if (!container) return;
-
-    const updateSize = () => {
-      const { width, height } = container.getBoundingClientRect();
-      if (!width || !height) return;
-
-      const containerAspect = width / height;
-      if (containerAspect > mapAspect) {
-        const h = height;
-        const w = h * mapAspect;
-        setMapSize({ width: w, height: h });
-      } else {
-        const w = width;
-        const h = w / mapAspect;
-        setMapSize({ width: w, height: h });
-      }
-    };
-
-    updateSize();
-    const observer = new ResizeObserver(updateSize);
-    observer.observe(container);
-
-    return () => observer.disconnect();
-  }, [mapAspect]);
+  const mapSize = useContainedMapSize(mapContainerRef, mapAspect);
 
   return (
     <AnimatePresence>
@@ -102,8 +76,7 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
                       />
                       
                       {data.locations.map((loc) => {
-                        const latestStory = loc.stories[0];
-                        if (!latestStory) return null;
+                        const latestStory = getPrimaryStory(loc);
 
                         return (
                           <div
@@ -115,16 +88,22 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
                               transform: 'translate(-50%, -50%)' 
                             }}
                           >
-                            <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
-                              <Image 
-                                src={latestStory.avatarUrl} 
-                                alt={latestStory.characterName} 
-                                width={32} 
-                                height={32} 
-                                className="object-cover"
-                                sizes="32px"
-                              />
-                            </div>
+                            {latestStory ? (
+                              <div className="w-8 h-8 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white">
+                                <Image
+                                  src={getStoryAvatarUrl(latestStory)}
+                                  alt={latestStory.characterName}
+                                  width={32}
+                                  height={32}
+                                  className="object-cover"
+                                  sizes="32px"
+                                />
+                              </div>
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full border-2 border-[#cfb27f] bg-[#fff4df] text-[#8b5a2b] shadow-lg">
+                                <MapPin className="h-3.5 w-3.5" />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
