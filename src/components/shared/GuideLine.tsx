@@ -21,9 +21,15 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  *    因此用户刚开始下滑即可看到引导线从丝带下方伸出，无"空走"。
  *  - ribbonX 使用 20%vw - 50px 动态计算（对应丝带 100px 宽容器 + col-start-1 justify-end），
  *    保证在所有屏幕尺寸下都与丝带中心精确对齐。
- *  - P6 位于鸣谢页底部上方 3%（约 30px），加上圆角端点后刚好"触及"页脚红色区域顶边，
- *    且在最小 0.85 宽高比屏幕上也不会覆盖页脚文字（QQ 交流群 / HIMEMATSU / 版权条）。
  *  - P4→P5 是跨越"关于我们"整个页面的连续折线段。
+ *
+ * 渲染区域裁剪（关键）：
+ *  - SVG 的可视区域严格受限于三页范围：顶边 = apTop - 60（保留 P1 圆角端点从丝带
+ *    下方"长出"的视觉余量），底边 = crTop + crH（鸣谢页底边，即页脚红条顶部）。
+ *  - 配合 `overflow: hidden`，任何超出底边的描边（包括 P6 圆角端点的外沿）都会被
+ *    SVG 视口硬裁剪，彻底杜绝红线渲染到 footer 之上，保证页脚文字始终清晰。
+ *  - 这是针对"P6 调整数值仍偶有覆盖页脚文字"的根治方案：不再依赖数值微调，
+ *    而是用蒙版（SVG 视口 + overflow:hidden）从渲染层面禁止三页之外的输出。
  */
 
 interface GuideLineProps {
@@ -83,9 +89,12 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     //     之前用 1.03 时端点落在 footer 内 27px，cap 又 +28px 压住了 "QQ 交流群" 行。
     const p6 = { x: vw * 0.32, y: crTop + crH * 0.97 };
 
-    // SVG 覆盖范围：从 P1 到 P6（加 60px 余量容纳 stroke 圆角端点）
+    // SVG 覆盖范围：三页裁剪盒。
+    //   顶边：P1 上方 60px（容纳 stroke 圆角端点，使引导线从丝带下方长出）
+    //   底边：严格等于鸣谢页底边 crTop + crH —— 与 overflow:hidden 合用作为蒙版，
+    //        禁止任何引导线像素渲染到页脚（footer）之上。
     const svgTop = p1.y - 60;
-    const svgBottom = p6.y + 60;
+    const svgBottom = crTop + crH;
     const svgHeight = svgBottom - svgTop;
 
     // 所有 Y 坐标相对于 SVG 顶部
@@ -188,7 +197,9 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
         height: svgDimensions.height,
         pointerEvents: 'none',
         zIndex: 1,
-        overflow: 'visible',
+        // 蒙版：硬裁剪所有超出 SVG 视口的描边（含圆角端点外沿），
+        // 保证引导线绝不渲染到鸣谢页底边之下（= footer 之上）。
+        overflow: 'hidden',
       }}
       aria-hidden="true"
     >
