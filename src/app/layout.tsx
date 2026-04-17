@@ -1,19 +1,19 @@
 import type { Metadata } from "next";
-import { Noto_Serif_SC, Noto_Sans_SC } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const notoSerif = Noto_Serif_SC({
-  variable: "--font-serif",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const displayFont = localFont({
+  src: "../../public/Alibaba-PuHuiTi-Medium.otf",
+  variable: "--font-display",
   display: "swap",
+  fallback: ["PingFang SC", "Microsoft YaHei", "sans-serif"],
 });
 
-const notoSans = Noto_Sans_SC({
-  variable: "--font-sans",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const bodyFont = localFont({
+  src: "../../public/ZouLDFXKAJ.ttf",
+  variable: "--font-body",
   display: "swap",
+  fallback: ["PingFang SC", "Microsoft YaHei", "sans-serif"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body
-        className={`${notoSerif.variable} ${notoSans.variable} font-sans antialiased`}
+        className={`${displayFont.variable} ${bodyFont.variable} font-sans antialiased`}
       >
         {children}
       </body>

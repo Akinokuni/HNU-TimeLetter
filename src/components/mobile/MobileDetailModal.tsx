@@ -85,7 +85,7 @@ export function MobileDetailModal({
       <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div
-        className="relative w-full h-[96dvh] bg-[#fdfbf7] rounded-t-[40px] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
+        className="relative w-full h-[96dvh] bg-background rounded-t-[40px] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
         layoutId={`story-card-${story.id}`}
         style={{ y: dragY, scale: contentScale }}
         onClick={(e) => e.stopPropagation()}

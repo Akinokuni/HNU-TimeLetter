@@ -59,7 +59,7 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
           exit={{ opacity: 0 }}
         >
           <motion.div 
-            className="relative w-full max-w-lg aspect-[3/4] bg-[#fdfbf7] rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+            className="relative w-full max-w-lg aspect-[3/4] bg-background rounded-3xl shadow-2xl overflow-hidden flex flex-col"
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.9, y: 20 }}
@@ -81,7 +81,7 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
             </div>
 
             {/* Map Area */}
-            <div className="flex-1 relative overflow-auto bg-[#f8f5f0]">
+            <div className="flex-1 relative overflow-auto bg-background">
               <div className="relative min-w-[600px] h-full flex items-center justify-center p-4">
                 <div className="relative w-full h-full" ref={mapContainerRef}>
                   <div className="absolute inset-0 flex items-center justify-center">

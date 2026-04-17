@@ -1,0 +1,17 @@
+documents:
+  - path: docs/library-selection-matrix.md
+    title: React 动画选型矩阵
+    tags:
+      - react
+      - animation
+      - library-selection
+      - performance
+    priority: high
+    always_load: true
+    description: 在 CSS、WAAPI、Framer Motion、GSAP、Lottie 和 Remotion 之间做场景化选择的参考矩阵。
+
+metadata:
+  version: "1.0.0"
+  total_documents: 1
+  auto_load_count: 1
+  last_updated: "2026-04-16"

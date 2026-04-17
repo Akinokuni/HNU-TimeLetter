@@ -12,6 +12,9 @@
 
 # testing
 /coverage
+/playwright-report/
+/test-results/
+/blob-report/
 
 # next.js
 /.next/
@@ -19,7 +22,7 @@
 
 # production
 /build
-
+/web设计
 # misc
 .DS_Store
 *.pem
@@ -42,3 +45,31 @@ eslint.log
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.playwright-mcp/console-2026-04-16T12-57-30-179Z.log
+.playwright-mcp/console-2026-04-16T12-58-10-134Z.log
+.playwright-mcp/console-2026-04-16T12-59-59-619Z.log
+.playwright-mcp/console-2026-04-16T13-02-31-542Z.log
+.playwright-mcp/console-2026-04-16T13-03-59-284Z.log
+.playwright-mcp/console-2026-04-16T13-07-19-075Z.log
+.playwright-mcp/console-2026-04-16T13-09-44-105Z.log
+.playwright-mcp/console-2026-04-16T13-10-25-197Z.log
+.playwright-mcp/console-2026-04-16T13-16-12-231Z.log
+.playwright-mcp/page-2026-04-16T12-57-35-726Z.yml
+.playwright-mcp/page-2026-04-16T12-57-52-345Z.yml
+.playwright-mcp/page-2026-04-16T12-58-10-349Z.yml
+.playwright-mcp/page-2026-04-16T12-58-35-341Z.yml
+.playwright-mcp/page-2026-04-16T12-59-24-572Z.yml
+.playwright-mcp/page-2026-04-16T12-59-59-888Z.yml
+.playwright-mcp/page-2026-04-16T13-00-07-400Z.yml
+.playwright-mcp/page-2026-04-16T13-00-40-025Z.yml
+.playwright-mcp/page-2026-04-16T13-02-31-914Z.yml
+.playwright-mcp/page-2026-04-16T13-02-44-921Z.yml
+.playwright-mcp/page-2026-04-16T13-03-13-326Z.yml
+.playwright-mcp/page-2026-04-16T13-03-59-638Z.yml
+.playwright-mcp/page-2026-04-16T13-04-11-927Z.yml
+.playwright-mcp/page-2026-04-16T13-07-19-387Z.yml
+.playwright-mcp/page-2026-04-16T13-08-23-761Z.yml
+.playwright-mcp/page-2026-04-16T13-09-44-486Z.yml
+.playwright-mcp/page-2026-04-16T13-09-55-345Z.yml
+.playwright-mcp/page-2026-04-16T13-10-25-488Z.yml
+.playwright-mcp/page-2026-04-16T13-16-12-761Z.yml

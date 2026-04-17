@@ -1,0 +1,47 @@
+name: react-motion-diff-checker
+description: Inspect changed React motion files to detect library usage, reduced-motion support, cleanup signals, and risky animation-property patterns.
+version: 1.0.0
+
+input_schema:
+  type: object
+  properties:
+    input_path:
+      type: string
+      description: Path to a JSON file containing project_root, changed_files, and optional selected_approach and SSR flags.
+  required:
+    - input_path
+
+output_schema:
+  type: object
+  properties:
+    valid:
+      type: boolean
+    files_checked:
+      type: integer
+    library_usage:
+      type: array
+      items:
+        type: string
+    uses_reduced_motion:
+      type: boolean
+    has_cleanup:
+      type: boolean
+    has_use_client_boundary:
+      type: boolean
+    risky_property_total:
+      type: integer
+    warnings:
+      type: array
+      items:
+        type: string
+
+implementation:
+  type: script
+  path: react-motion-diff-checker.py
+  runtime: python3
+  timeout: 20
+
+annotations:
+  requires_confirmation: false
+  read_only: true
+  cost: low

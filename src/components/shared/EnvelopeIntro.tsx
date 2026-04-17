@@ -1,329 +1,537 @@
 'use client';
 
-import { motion, useAnimationControls } from 'framer-motion';
+import Image from 'next/image';
+import { motion, useAnimationControls, useReducedMotion, AnimatePresence } from 'framer-motion';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ChevronDown } from 'lucide-react';
 
-export function EnvelopeIntro() {
-  const { setEnvelopeOpened } = useAppStore();
-  const [isOpening, setIsOpening] = useState(false);
-  const controls = useAnimationControls();
+/* ────────────────────────────────────────────
+ * 火漆碎裂碎片组件
+ * 将火漆图片拆分为 8 块 clipPath 碎片，
+ * 各碎片沿径向飞散并旋转淡出，模拟碎裂效果。
+ * ──────────────────────────────────────────── */
+interface ShardData {
+  id: number;
+  clipPath: string;
+  x: number;
+  y: number;
+  rotate: number;
+  delay: number;
+}
 
-  const handleOpen = async () => {
-    if (isOpening) return;
-    setIsOpening(true);
-
-    // 1. 播放开信动画序列 (约 1.7s)
-    void controls.start('open');
-    
-    // 2. 等待信纸抽出 (1.7s) + 悬停 (0.2s) = 1.9s
-    await new Promise((resolve) => setTimeout(resolve, 1900));
-
-    // 3. 信封下落 (0.6s)
-    void controls.start('drop_envelope');
-    await new Promise((resolve) => setTimeout(resolve, 600));
-    
-    // 4. 信纸放大 (0.8s)
-    void controls.start('expand_letter');
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    // 5. 切换状态
-    setEnvelopeOpened(true);
-  };
+function WaxSealShards({ isShattered, sizeClass }: { isShattered: boolean; sizeClass: string }) {
+  const shards = useMemo<ShardData[]>(() => [
+    { id: 0, clipPath: 'polygon(30% 0%, 70% 0%, 55% 45%, 45% 45%)', x: 2, y: -90, rotate: -25, delay: 0 },
+    { id: 1, clipPath: 'polygon(70% 0%, 100% 0%, 100% 35%, 55% 45%)', x: 80, y: -70, rotate: 35, delay: 0.02 },
+    { id: 2, clipPath: 'polygon(100% 35%, 100% 70%, 60% 55%, 55% 45%)', x: 95, y: 15, rotate: 50, delay: 0.04 },
+    { id: 3, clipPath: 'polygon(100% 70%, 100% 100%, 65% 100%, 55% 60%)', x: 70, y: 85, rotate: -30, delay: 0.03 },
+    { id: 4, clipPath: 'polygon(55% 60%, 65% 100%, 35% 100%, 45% 60%)', x: -5, y: 95, rotate: 15, delay: 0.05 },
+    { id: 5, clipPath: 'polygon(0% 100%, 35% 100%, 45% 60%, 40% 55%, 0% 65%)', x: -75, y: 80, rotate: -45, delay: 0.02 },
+    { id: 6, clipPath: 'polygon(0% 65%, 40% 55%, 45% 45%, 0% 35%)', x: -90, y: 10, rotate: 40, delay: 0.04 },
+    { id: 7, clipPath: 'polygon(0% 0%, 30% 0%, 45% 45%, 0% 35%)', x: -80, y: -75, rotate: -35, delay: 0.01 },
+  ], []);
 
   return (
-    <motion.div
-      className={cn(
-        "fixed inset-0 z-50 bg-[#fdfbf7] snap-y snap-mandatory scroll-smooth",
-        isOpening ? "overflow-hidden" : "overflow-y-auto"
-      )}
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 1, ease: "easeInOut" }}
-    >
-      {/* 第一屏：启封 */}
-      <section className="w-full h-screen snap-start relative flex items-center justify-center overflow-hidden">
-        {/* 背景氛围：光影与噪点 */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply" />
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 via-transparent to-blue-50/30 pointer-events-none" />
-
-        {/* 标题 */}
-        <motion.div 
-          className="absolute top-[15%] md:top-[18%] left-0 right-0 text-center z-40 px-4 pointer-events-none space-y-3"
-          initial={{ opacity: 0, y: -20 }}
-          animate={isOpening ? { opacity: 0, y: -50, filter: "blur(10px)" } : { opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ duration: 1, ease: "easeInOut" }}
-        >
-          <h1 className="font-serif text-3xl md:text-5xl text-stone-800 font-bold tracking-[0.2em] drop-shadow-sm">
-            与她的海大时光笺
-          </h1>
-          <p className="font-sans text-xs md:text-sm text-stone-500 tracking-[0.4em] uppercase opacity-80">
-            Hainan University TimeLetter
-          </p>
-        </motion.div>
-
-        {/* 信封容器 */}
+    <AnimatePresence>
+      {isShattered && shards.map((shard) => (
         <motion.div
-          className="relative w-[340px] h-[240px] md:w-[480px] md:h-[320px] perspective-1000"
-          initial="idle"
-          animate={isOpening ? undefined : "idle"}
-          variants={{
-            idle: {
-              y: [0, -10, 0],
-              rotate: [0, 1, 0, -1, 0],
-              transition: {
-                duration: 6,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }
-            }
+          key={shard.id}
+          className={cn(
+            'absolute left-1/2 top-1/2 z-40 pointer-events-none',
+            sizeClass
+          )}
+          style={{ clipPath: shard.clipPath }}
+          initial={{ opacity: 1, x: '-50%', y: '-50%', scale: 1, rotate: 0 }}
+          animate={{
+            opacity: [1, 0.9, 0],
+            x: `calc(-50% + ${shard.x}px)`,
+            y: `calc(-50% + ${shard.y}px)`,
+            scale: [1, 0.85, 0.4],
+            rotate: shard.rotate,
+          }}
+          transition={{
+            duration: 0.65,
+            delay: shard.delay,
+            ease: [0.32, 0, 0.67, 0],
+            opacity: { times: [0, 0.4, 1] },
           }}
         >
+          <Image
+            alt=""
+            className="object-contain drop-shadow-[0_10px_16px_rgba(20,53,104,0.35)]"
+            fill
+            sizes="92px"
+            src="/sealing_wax.png"
+          />
+        </motion.div>
+      ))}
+    </AnimatePresence>
+  );
+}
+
+/* ────────────────────────────────────────────
+ * Ribbon SVG — 首屏左侧竖向丝带装饰
+ * 使用 SVG 内置 feDropShadow 替代 CSS drop-shadow，
+ * 避免 GPU 合成导致的边缘半透明伪影。
+ * ──────────────────────────────────────────── */
+function TwistedRibbon() {
+  return (
+    <div
+      aria-hidden="true"
+      className="pointer-events-none h-full w-[100px] shrink-0"
+    >
+      <svg
+        className="size-full"
+        fill="none"
+        preserveAspectRatio="none"
+        viewBox="0 0 100 1080"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <linearGradient
+            gradientUnits="userSpaceOnUse"
+            id="hero-ribbon-bottom"
+            x1="183.315" x2="-83.5254"
+            y1="16.7419" y2="1063.26"
+          >
+            <stop stopColor="#C23643" />
+            <stop offset="0.2" stopColor="#AE303C" />
+            <stop offset="0.4" stopColor="#86252E" />
+            <stop offset="0.5" stopColor="#9A2B35" />
+            <stop offset="0.6" stopColor="#86252E" />
+            <stop offset="0.8" stopColor="#AE303C" />
+            <stop offset="1" stopColor="#C23643" />
+          </linearGradient>
+          <linearGradient
+            gradientUnits="userSpaceOnUse"
+            id="hero-ribbon-top"
+            x1="50" x2="50"
+            y1="-540" y2="540"
+          >
+            <stop stopColor="#D45863" />
+            <stop offset="0.58" stopColor="#C23643" />
+            <stop offset="1" stopColor="#7A1623" />
+          </linearGradient>
+        </defs>
+        <g>
+          <path
+            d="M50 540C75 675 100 810 100 1080H0C0 810 25 675 50 540Z"
+            fill="url(#hero-ribbon-bottom)"
+            shapeRendering="geometricPrecision"
+          />
+          <path
+            d="M100 0C100 270 75 405 50 540C25 405 0 270 0 0H100Z"
+            fill="url(#hero-ribbon-top)"
+            shapeRendering="geometricPrecision"
+          />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+/* ────────────────────────────────────────────
+ * 类型 & 工具
+ * ──────────────────────────────────────────── */
+type Phase = 'loading' | 'entering' | 'idle' | 'opening';
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * 计算信纸展开的缩放倍率，使其覆盖整个视口。
+ * 信纸实际尺寸 = 信封尺寸 - inset-4 两侧 = 信封尺寸 - 32px
+ */
+function calcLetterScale(): number {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // 信封在不同断点的宽度 (与 className 中的响应式宽度对应)
+  let envelopeWidth = 595;
+  if (vw < 640) envelopeWidth = 280;
+  else if (vw < 768) envelopeWidth = 360;
+  else if (vw < 1024) envelopeWidth = 480;
+
+  const envelopeHeight = envelopeWidth * (397 / 595);
+  const letterWidth = envelopeWidth - 32;
+  const letterHeight = envelopeHeight - 32;
+
+  // 取宽高方向的最大缩放比，再额外增加 20% 确保完全覆盖
+  const scaleX = (vw / letterWidth) * 1.2;
+  const scaleY = (vh / letterHeight) * 1.2;
+  return Math.max(scaleX, scaleY);
+}
+
+/**
+ * 计算信纸从当前位置移到视口正中心所需的偏移量
+ */
+function calcLetterCenterOffset(): { x: number; y: number } {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // 信封在不同断点的宽度
+  let envelopeWidth = 595;
+  if (vw < 640) envelopeWidth = 280;
+  else if (vw < 768) envelopeWidth = 360;
+  else if (vw < 1024) envelopeWidth = 480;
+
+  const envelopeHeight = envelopeWidth * (397 / 595);
+
+  // 信封在五列网格中的位置：col-start-3 col-span-3，mx-auto
+  // 信封中心大约在视口的 (3/5 + 3/10) * vw = 0.6 * vw 处（第3-5列中心）
+  // 更精确：网格5列等分，第3列起始 = 2/5 * vw，跨3列中心 = (2/5 + 3/10) * vw = 7/10 * vw
+  // 但 mx-auto 会让信封在这3列中居中
+  const gridColStart = (2 / 5) * vw;
+  const gridColSpan = (3 / 5) * vw;
+  const envelopeCenterX = gridColStart + gridColSpan / 2;
+  const envelopeCenterY = vh / 2;
+
+  const viewportCenterX = vw / 2;
+  const viewportCenterY = vh / 2;
+
+  return {
+    x: viewportCenterX - envelopeCenterX,
+    y: viewportCenterY - envelopeCenterY,
+  };
+}
+
+/* ────────────────────────────────────────────
+ * 主组件
+ * ──────────────────────────────────────────── */
+export function EnvelopeIntro() {
+  const { setEnvelopeOpened, setTransitioning } = useAppStore();
+  const [phase, setPhase] = useState<Phase>('loading');
+  const [ribbonRevealed, setRibbonRevealed] = useState(false);
+  const [isShattered, setIsShattered] = useState(false);
+  const phaseRef = useRef<Phase>('loading');
+
+  const envelopeControls = useAnimationControls();
+  const openControls = useAnimationControls();
+  const shellDropControls = useAnimationControls();
+  const prefersReducedMotion = useReducedMotion();
+
+  // 保持 ref 同步，供异步回调中安全读取
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
+
+  /* ─── 入场动画序列 ─── */
+  useEffect(() => {
+    let cancelled = false;
+    let frame2: number | undefined;
+
+    const runEntry = async () => {
+      if (cancelled) return;
+      setPhase('entering');
+      setRibbonRevealed(true);
+
+      if (prefersReducedMotion) {
+        envelopeControls.set({ y: 0, opacity: 1, rotateX: 0, rotateZ: 0 });
+        if (!cancelled) setPhase('idle');
+        return;
+      }
+
+      // 丝带先出现（clip-path CSS 动画 1.4s），信封延迟 1.5s 后飘落
+      await sleep(1500);
+      if (cancelled || phaseRef.current === 'opening') return;
+
+      // 信封入场：使用 spring 物理弹簧实现丝滑飘落
+      // 从屏幕上方 120% 处下落，带左右摇摆的飘落感
+      await envelopeControls.start({
+        y: 0,
+        x: 0,
+        opacity: 1,
+        rotateX: 0,
+        rotateZ: 0,
+        transition: {
+          type: 'spring',
+          stiffness: 30,
+          damping: 12,
+          mass: 1.5,
+          opacity: { duration: 0.6, ease: 'easeOut' },
+        },
+      });
+
+      // phaseRef.current 可在 await 期间被异步更新为 'opening'
+      if (cancelled || (phaseRef as React.RefObject<Phase>).current === 'opening') return;
+      setPhase('idle');
+
+      // 闲置呼吸浮动 — 赋予信封生命感
+      envelopeControls.start({
+        y: [0, -8, 0],
+        rotate: [0, 0.5, 0, -0.5, 0],
+        transition: {
+          duration: 5.5,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        },
+      });
+    };
+
+    // 双层 rAF 确保首帧渲染稳定后再触发动画
+    const frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        if (!cancelled) runEntry();
+      });
+    });
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame1);
+      if (frame2 !== undefined) cancelAnimationFrame(frame2);
+    };
+  }, [envelopeControls, prefersReducedMotion]);
+
+  /* ─── 开信交互 ─── */
+  const handleOpen = useCallback(async () => {
+    if (phaseRef.current === 'opening') return;
+    setPhase('opening');
+
+    // 冻结信封在静止位置
+    envelopeControls.stop();
+    envelopeControls.set({ y: 0, x: 0, rotate: 0, rotateX: 0, rotateZ: 0 });
+
+    // 0. 触发火漆碎裂 (立即)
+    setIsShattered(true);
+
+    // 1. 封盖翻开 + 信纸抽出 (1.9s)
+    void openControls.start('open');
+    await sleep(1900);
+
+    // 2. 信封壳体整体下落 (0.7s) — 保持完整形态
+    void shellDropControls.start({
+      y: '120vh',
+      rotate: 4,
+      opacity: 0,
+      transition: {
+        duration: 0.7,
+        ease: [0.55, 0, 1, 0.45], // 加速下落
+        opacity: { delay: 0.3, duration: 0.4 },
+      },
+    });
+    await sleep(700);
+
+    // 3. 信纸先移到视口正中心 (0.5s)，再放大铺满屏幕 (0.9s)
+    const centerOffset = calcLetterCenterOffset();
+    void openControls.start({
+      x: centerOffset.x,
+      y: centerOffset.y,
+      transition: {
+        duration: 0.5,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    });
+    await sleep(500);
+
+    // 激活过渡遮罩 — 在信纸放大前就显示，防止过渡期间页脚露出
+    setTransitioning(true);
+
+    const targetScale = calcLetterScale();
+    void openControls.start({
+      scale: targetScale,
+      transition: {
+        duration: 0.9,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    });
+    // 信纸内容同步淡出
+    await sleep(900);
+
+    setEnvelopeOpened(true);
+  }, [envelopeControls, openControls, shellDropControls, setEnvelopeOpened, setTransitioning]);
+
+  const isIdle = phase === 'idle';
+  const isOpening = phase === 'opening';
+
+  const waxSealSizeClass = 'h-[72px] w-[72px] sm:h-[82px] sm:w-[82px] md:h-[92px] md:w-[92px]';
+
+  return (
+    <div className="page-paper relative w-full z-50">
+      <section className="relative h-screen w-full overflow-hidden">
+        {/* 背景：纯色 #ece9e4 由 page-paper 提供 */}
+
+        {/* 五列网格主布局 */}
+        <div className="relative z-10 grid h-full w-full grid-cols-5 items-center">
+          {/* ── 第1列：丝带 ── */}
+          <div
+            className={cn(
+              'hero-ribbon-clip col-start-1 flex h-full items-center justify-end overflow-visible',
+              ribbonRevealed && 'hero-ribbon-revealed'
+            )}
+          >
+            <TwistedRibbon />
+          </div>
+
+          {/* ── 第2列：标题 ── */}
           <motion.div
-            className="relative w-full h-full preserve-3d"
-            animate={controls}
-            variants={{
-              open: {
-                y: 100,
-                scale: 1.1,
-                transition: { duration: 0.8, ease: "backOut" }
-              },
-              exit: {
-                opacity: 0,
-                scale: 1.5,
-                filter: "blur(10px)",
-                transition: { duration: 0.8 }
-              }
+            className="col-start-2 flex items-center justify-center self-center"
+            initial={{ opacity: 0 }}
+            animate={
+              isOpening
+                ? { opacity: 0, y: -40, filter: 'blur(8px)' }
+                : isIdle
+                  ? { opacity: 1, y: 0, filter: 'blur(0px)' }
+                  : { opacity: 0, y: 0, filter: 'blur(0px)' }
+            }
+            transition={{
+              duration: isOpening ? 0.6 : 0.8,
+              delay: isIdle && !isOpening ? 0.15 : 0,
+              ease: [0.85, 0, 0.15, 1],
             }}
           >
-            {/* 信封背面 (Inside) */}
-            <motion.div 
-              className="absolute inset-0 bg-[#e6ded5] rounded-lg shadow-2xl" 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-
-            {/* 信纸 (Letter) */}
-            <motion.div
-              className="absolute left-4 right-4 top-4 bottom-4 bg-white shadow-sm flex flex-col items-center justify-center p-8 text-center origin-bottom z-10"
-              variants={{
-                open: {
-                  y: -150,
-                  transition: { delay: 0.7, duration: 1, type: "spring", bounce: 0.3 } 
-                },
-                drop_envelope: {
-                  y: -150,
-                  transition: { duration: 0.6 } 
-                },
-                expand_letter: {
-                  scale: 5,
-                  y: 0,
-                  opacity: 0,
-                  transition: { duration: 0.8, ease: "easeInOut" }
-                }
-              }}
+            <h1
+              className="font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
+              style={{ textOrientation: 'upright', writingMode: 'vertical-rl' }}
             >
-              <div className="w-full h-full border-2 border-dashed border-stone-200 p-4 flex flex-col items-center justify-center">
-                <h2 className="font-serif text-2xl text-stone-800 mb-2 tracking-widest">时光笺</h2>
-                <p className="font-sans text-xs text-stone-500 uppercase tracking-widest">Hainan University</p>
-                <div className="mt-4 w-12 h-[1px] bg-stone-300" />
-                <p className="mt-4 text-xs text-stone-400 font-serif italic">
-                  &quot;献给每一段无法复刻的青春&quot;
-                </p>
-              </div>
-            </motion.div>
-
-            {/* 信封正面 (Front Flaps) */}
-            {/* 底部三角形 */}
-            <motion.div 
-              className="absolute bottom-0 left-0 right-0 h-1/2 bg-[#f0eadd] z-20" 
-              style={{ clipPath: "polygon(0 100%, 50% 0, 100% 100%)" }} 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-            {/* 左侧三角形 */}
-            <motion.div 
-              className="absolute left-0 top-0 bottom-0 w-1/2 bg-[#f5efe4] z-20" 
-              style={{ clipPath: "polygon(0 0, 0 100%, 100% 50%)" }} 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-            {/* 右侧三角形 */}
-            <motion.div 
-              className="absolute right-0 top-0 bottom-0 w-1/2 bg-[#efe8dc] z-20" 
-              style={{ clipPath: "polygon(100% 0, 100% 100%, 0 50%)" }} 
-              variants={{
-                drop_envelope: { y: 1000, opacity: 0, transition: { duration: 0.6, ease: "easeIn" } },
-                expand_letter: { y: 1000, opacity: 0, transition: { duration: 0 } }
-              }}
-            />
-
-            {/* 顶部封盖 (Top Flap) */}
-            <motion.div
-              className="absolute top-0 left-0 right-0 h-1/2 bg-[#e8e0d5] origin-top z-30 shadow-md"
-              style={{ 
-                clipPath: "polygon(0 0, 100% 0, 50% 100%)",
-                transformStyle: "preserve-3d"
-              }}
-              variants={{
-                open: {
-                  rotateX: 180,
-                  zIndex: 0,
-                  transition: { 
-                    rotateX: { duration: 0.6, ease: "easeInOut" },
-                    zIndex: { delay: 0.3 }
-                  }
-                },
-                drop_envelope: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0.6, ease: "easeIn" }
-                },
-                expand_letter: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0 }
-                }
-              }}
-            >
-               <div className="absolute inset-0 bg-[#ded6ca] backface-hidden rotate-x-180" />
-            </motion.div>
-
-            {/* 火漆印 (Wax Seal) */}
-            <motion.button
-              className={cn(
-                "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40",
-                "w-16 h-16 md:w-20 md:h-20 rounded-full",
-                "bg-red-800 shadow-xl flex items-center justify-center",
-                "border-4 border-red-700/50",
-                "cursor-pointer hover:bg-red-700 transition-colors",
-                isOpening && "pointer-events-none"
-              )}
-              onClick={handleOpen}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              variants={{
-                open: {
-                  opacity: 0,
-                  scale: 1.5,
-                  filter: "blur(4px)",
-                  transition: { duration: 0.3 }
-                },
-                drop_envelope: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0.6, ease: "easeIn" }
-                },
-                expand_letter: {
-                  y: 1000,
-                  opacity: 0,
-                  transition: { duration: 0 }
-                }
-              }}
-            >
-              <div className="absolute inset-1 rounded-full border border-red-900/30 opacity-50" />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-black/20 to-white/10" />
-              <span className="font-serif text-amber-100/90 text-xl md:text-2xl font-bold tracking-tighter drop-shadow-md">
-                HNU
-              </span>
-            </motion.button>
-            
-            {/* 点击提示 */}
-            <motion.p
-              className="absolute -bottom-12 left-0 right-0 text-center text-stone-400 text-sm font-serif tracking-widest"
-              variants={{
-                idle: { opacity: [0.5, 1, 0.5], transition: { duration: 2, repeat: Infinity } },
-                open: { opacity: 0 }
-              }}
-              animate={isOpening ? "open" : "idle"}
-            >
-              点击开启
-            </motion.p>
+              与她的海大时光笺
+            </h1>
           </motion.div>
-        </motion.div>
 
-        {/* 下滑提示 */}
-        <motion.div 
-          className="absolute bottom-8 left-0 right-0 flex flex-col items-center justify-center text-stone-400 gap-2"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 2, duration: 1 }}
+          {/* ── 第3~5列：信封 ── */}
+          <motion.div
+            className="relative col-span-3 col-start-3 mx-auto aspect-[595/397] w-[280px] perspective-1000 sm:w-[360px] md:w-[480px] lg:w-[595px]"
+            initial={{ y: '-120vh', opacity: 0, rotateX: 6, rotateZ: -5 }}
+            animate={envelopeControls}
+            style={{ transformOrigin: '50% 50%' }}
+          >
+            {/* 开信动画容器 */}
+            <motion.div
+              animate={openControls}
+              className="relative h-full w-full preserve-3d"
+              variants={{
+                open: {
+                  scale: 1.08,
+                  y: 84,
+                  transition: { duration: 0.8, ease: [0.34, 1.56, 0.64, 1] },
+                },
+              }}
+            >
+              {/* ═══ 信封壳体容器 — 整体下落时保持完整形态 ═══ */}
+              <motion.div
+                className="absolute inset-0"
+                animate={shellDropControls}
+              >
+                {/* 信封背面 */}
+                <div className="absolute inset-0 rounded-[10px] bg-[#e8e0d5] shadow-[0_26px_60px_rgba(82,63,54,0.18)]">
+                  <div className="absolute inset-0 rounded-[10px] bg-white/10" />
+                </div>
+
+                {/* 底部三角折叠 */}
+                <div
+                  className="absolute inset-x-0 bottom-0 z-20 h-1/2 bg-[#f0eadd]"
+                  style={{ clipPath: 'polygon(0 100%, 50% 0, 100% 100%)' }}
+                />
+                {/* 左侧三角折叠 */}
+                <div
+                  className="absolute inset-y-0 left-0 z-20 w-1/2 bg-[#f5efe4]"
+                  style={{ clipPath: 'polygon(0 0, 0 100%, 100% 50%)' }}
+                />
+                {/* 右侧三角折叠 */}
+                <div
+                  className="absolute inset-y-0 right-0 z-20 w-1/2 bg-[#efe8dc]"
+                  style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 50%)' }}
+                />
+
+                {/* 顶部封盖 — 3D翻转，翻转至90°时 zIndex 瞬间降为0（低于信纸 z-10） */}
+                <motion.div
+                  className="absolute inset-x-0 top-0 z-30 h-1/2 origin-top bg-[#e8e0d5] shadow-md"
+                  style={{
+                    clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
+                    transformStyle: 'preserve-3d',
+                  }}
+                  variants={{
+                    open: {
+                      rotateX: 180,
+                      zIndex: 0,
+                      transition: {
+                        rotateX: { duration: 0.6, ease: 'easeInOut' },
+                        zIndex: { delay: 0.25, duration: 0, type: 'tween' },
+                      },
+                    },
+                  }}
+                >
+                  <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
+                </motion.div>
+
+                {/* 火漆印按钮 — 静态固定在信封上，逆时针5°倾角 */}
+                {!isShattered && (
+                  <motion.button
+                    className={cn(
+                      'absolute left-1/2 top-1/2 z-40 -translate-x-1/2 -translate-y-1/2 cursor-pointer',
+                      waxSealSizeClass,
+                      isOpening && 'pointer-events-none'
+                    )}
+                    onClick={handleOpen}
+                    style={{ rotate: '-5deg' }}
+                  >
+                    <Image
+                      alt="打开信封"
+                      className="object-contain drop-shadow-[0_10px_16px_rgba(20,53,104,0.35)]"
+                      fill
+                      priority
+                      sizes="(max-width: 640px) 72px, (max-width: 768px) 82px, 92px"
+                      src="/sealing_wax.png"
+                    />
+                  </motion.button>
+                )}
+
+                {/* 火漆碎裂碎片 */}
+                <WaxSealShards isShattered={isShattered} sizeClass={waxSealSizeClass} />
+              </motion.div>
+
+              {/* ═══ 信纸 — 独立于壳体，壳体下落时信纸留在原位 ═══ */}
+              <motion.div
+                className="paper-panel absolute inset-4 z-10 flex origin-center flex-col items-center justify-center overflow-hidden p-6 text-center md:p-8"
+                variants={{
+                  open: {
+                    y: -150,
+                    transition: { delay: 0.7, duration: 1, type: 'spring', bounce: 0.3 },
+                  },
+                }}
+              >
+                {/* 信纸内容 — 展开时快速淡出 */}
+                <motion.div
+                  className="flex h-full w-full flex-col items-center justify-center border-2 border-dashed border-border/80 p-4 md:p-[18px]"
+                  animate={isOpening ? { opacity: 0 } : { opacity: 1 }}
+                  transition={{ duration: 0.4, delay: isOpening ? 2.6 : 0, ease: 'easeIn' }}
+                >
+                  <h2 className="mb-2 font-serif text-xl tracking-[0.16em] text-foreground md:text-2xl">
+                    时光笺
+                  </h2>
+                  <p className="font-serif text-[11px] uppercase tracking-[0.24em] text-muted-foreground md:text-xs">
+                    Hainan University
+                  </p>
+                  <div className="mt-4 h-px w-12 bg-border" />
+                  <p className="mt-4 font-serif text-[11px] italic text-muted-foreground md:text-xs">
+                    &quot;献给每一段无法复刻的青春&quot;
+                  </p>
+                </motion.div>
+              </motion.div>
+            </motion.div>
+          </motion.div>
+        </div>
+
+        {/* 点击提示 — 呼吸闪烁 (定位在信封正下方，水平对齐信封中心) */}
+        <motion.p
+          className="absolute bottom-[3%] left-[70%] z-10 -translate-x-1/2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
+          initial={{ opacity: 0, y: 6 }}
+          animate={
+            isIdle
+              ? { opacity: [0.35, 0.65, 0.35], y: 0 }
+              : { opacity: 0, y: 6 }
+          }
+          transition={
+            isIdle
+              ? {
+                  opacity: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' },
+                  y: { duration: 0.5, ease: 'easeOut' },
+                }
+              : { duration: 0.3 }
+          }
         >
-          <span className="text-xs font-serif tracking-widest">关于项目</span>
-          <ChevronDown className="w-5 h-5 animate-bounce" />
-        </motion.div>
+          点击开启
+        </motion.p>
       </section>
-
-      {/* 第二屏：关于项目 */}
-      <section className="w-full h-screen snap-start relative flex items-center justify-center bg-[#fdfbf7] p-8">
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply" />
-        <div className="max-w-2xl text-center space-y-8 z-10">
-          <div className="space-y-2">
-            <h2 className="text-3xl md:text-4xl font-serif text-stone-800">关于项目</h2>
-            <p className="text-stone-400 font-serif italic">Project Vision</p>
-          </div>
-          
-          <div className="w-16 h-[1px] bg-stone-300 mx-auto" />
-          
-          <p className="text-stone-600 leading-loose font-serif text-lg">
-            这是一个基于海南大学校园地图的交互式视觉叙事网站。<br/>
-            我们打破次元壁，将 Galgame 风格的二次元角色融入海大实景——<br/>
-            思源学堂、东坡湖、图书馆……<br/>
-            这里不仅有风景，更有属于我们的情感记忆。
-          </p>
-          
-          <p className="text-stone-600 leading-loose font-serif text-lg">
-            通过“图+文”的形式，<br/>
-            我们共同书写属于我们的“海大故事”。
-          </p>
-        </div>
-        
-        <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center justify-center text-stone-400 gap-2">
-          <ChevronDown className="w-5 h-5 animate-bounce" />
-        </div>
-      </section>
-
-      {/* 第三屏：关于我们 */}
-      <section className="w-full h-screen snap-start relative flex items-center justify-center bg-[#f5efe4] p-8">
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 mix-blend-multiply" />
-        <div className="max-w-3xl text-center space-y-12 z-10">
-          <div className="space-y-2">
-            <h2 className="text-3xl md:text-4xl font-serif text-stone-800">关于我们</h2>
-            <p className="text-stone-400 font-serif italic">Our Team</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 text-left">
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-stone-700 font-serif border-b border-stone-300 pb-2">策划与开发</h3>
-              <ul className="space-y-2 text-stone-600 font-sans">
-                <li className="flex justify-between"><span>基础设施 & 运维</span> <span className="text-stone-400">Dev A</span></li>
-                <li className="flex justify-between"><span>PC端体验</span> <span className="text-stone-400">Dev B</span></li>
-                <li className="flex justify-between"><span>移动端体验</span> <span className="text-stone-400">Dev C</span></li>
-              </ul>
-            </div>
-            
-            <div className="space-y-4">
-              <h3 className="text-xl font-bold text-stone-700 font-serif border-b border-stone-300 pb-2">特别鸣谢</h3>
-              <ul className="space-y-2 text-stone-600 font-sans">
-                <li>所有为海大留下美好瞬间的摄影师们</li>
-                <li>以及每一个热爱海大的你</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="pt-8 text-stone-400 text-sm font-serif">
-            © 2026 与她的海大时光笺 · Hainan University
-          </div>
-        </div>
-      </section>
-    </motion.div>
+    </div>
   );
 }

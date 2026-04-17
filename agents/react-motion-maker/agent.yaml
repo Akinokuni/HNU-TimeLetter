@@ -1,0 +1,57 @@
+spec_version: "0.1.0"
+name: react-motion-maker
+version: 1.0.0
+description: 为 React 项目进行动效需求拆解、动画库选型、代码实现与质量验证的执行型 Agent。
+author: Aki workspace
+license: MIT
+
+model:
+  preferred: gpt-5.4
+  fallback:
+    - gpt-5.2
+  constraints:
+    temperature: 0.2
+    max_tokens: 8192
+
+skills:
+  - motion-requirement-alignment
+  - react-project-context-analysis
+  - animation-library-selection
+  - react-motion-implementation
+  - motion-quality-validation
+  - framer-motion-animator
+  - gsap-core
+  - gsap-scrolltrigger
+  - gsap-performance
+  - lottie
+  - remotion
+  - remotion-best-practices
+
+tools:
+  - react-project-context-scanner
+  - react-project-context-scanner-verifier
+  - motion-library-fit-checker
+  - motion-library-fit-checker-verifier
+  - react-motion-diff-checker
+  - react-motion-diff-checker-verifier
+
+delegation:
+  mode: explicit
+
+runtime:
+  max_turns: 45
+  timeout: 300
+
+tags:
+  - react
+  - animation
+  - motion
+  - frontend
+  - library-selection
+
+metadata:
+  target_audience: teams
+  compliance_level: standard
+  primary_stack: react
+  delivery_mode: direct-code-edit
+  vendored_skill_dirs: framer-motion-animator,gsap-core,gsap-scrolltrigger,gsap-performance,lottie,remotion,remotion-best-practices

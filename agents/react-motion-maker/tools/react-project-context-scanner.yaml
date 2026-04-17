@@ -1,0 +1,64 @@
+name: react-project-context-scanner
+description: Scan a React project to identify framework, runtime constraints, styling stack, package manager, and existing motion-related dependencies.
+version: 1.0.0
+
+input_schema:
+  type: object
+  properties:
+    project_root:
+      type: string
+      description: Absolute or relative path to the React project root.
+  required:
+    - project_root
+
+output_schema:
+  type: object
+  properties:
+    valid:
+      type: boolean
+      description: Whether the scanner found enough project context to continue.
+    framework:
+      type: string
+      description: Detected frontend framework.
+    react_version:
+      type: string
+      description: Detected React version string.
+    typescript:
+      type: boolean
+      description: Whether the project uses TypeScript.
+    styling:
+      type: array
+      items:
+        type: string
+    existing_motion_libs:
+      type: array
+      items:
+        type: string
+    ssr:
+      type: boolean
+      description: Whether the project appears SSR-capable.
+    package_manager:
+      type: string
+      description: Detected package manager.
+    package_json_path:
+      type: string
+      description: Resolved package.json path.
+    notable_files:
+      type: array
+      items:
+        type: string
+    warnings:
+      type: array
+      items:
+        type: string
+
+implementation:
+  type: script
+  path: react-project-context-scanner.py
+  runtime: python3
+  timeout: 20
+
+annotations:
+  requires_confirmation: false
+  read_only: true
+  cost: low

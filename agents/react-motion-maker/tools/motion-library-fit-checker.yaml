@@ -1,0 +1,49 @@
+name: motion-library-fit-checker
+description: Score candidate animation approaches for a React task using motion goals, project constraints, and existing dependencies.
+version: 1.0.0
+
+input_schema:
+  type: object
+  properties:
+    input_path:
+      type: string
+      description: Path to a JSON file containing motion_goal, scope, constraints, and optional project_context.
+  required:
+    - input_path
+
+output_schema:
+  type: object
+  properties:
+    valid:
+      type: boolean
+    selected_approach:
+      type: string
+    dependency_impact:
+      type: string
+    candidate_scores:
+      type: array
+      items:
+        type: object
+    rejected_options:
+      type: array
+      items:
+        type: object
+    considered_dimensions:
+      type: array
+      items:
+        type: string
+    warnings:
+      type: array
+      items:
+        type: string
+
+implementation:
+  type: script
+  path: motion-library-fit-checker.py
+  runtime: python3
+  timeout: 20
+
+annotations:
+  requires_confirmation: false
+  read_only: true
+  cost: low

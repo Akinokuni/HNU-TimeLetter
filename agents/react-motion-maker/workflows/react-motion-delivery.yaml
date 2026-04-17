@@ -1,0 +1,71 @@
+name: react-motion-delivery
+description: Analyze a React project, choose the right animation approach, implement motion, and validate the result through paired verifiers.
+version: 1.0.0
+
+triggers:
+  - user_requests_react_motion_work
+
+steps:
+  align_requirement:
+    skill: motion-requirement-alignment
+    outputs: [motion_goal, trigger_type, scope, constraints, success_criteria]
+
+  scan_project_context:
+    tool: react-project-context-scanner
+    depends_on: [align_requirement]
+    inputs:
+      project_root: ${{ trigger.project_root }}
+    outputs: [project_context]
+
+  verify_project_context:
+    tool: react-project-context-scanner-verifier
+    depends_on: [scan_project_context]
+    inputs:
+      input_path: ${{ steps.scan_project_context.outputs.project_context }}
+    outputs: [context_verification]
+
+  select_animation_approach:
+    skill: animation-library-selection
+    depends_on: [verify_project_context]
+    outputs: [selection_brief]
+
+  score_library_fit:
+    tool: motion-library-fit-checker
+    depends_on: [select_animation_approach]
+    inputs:
+      input_path: ${{ steps.select_animation_approach.outputs.selection_brief }}
+    outputs: [fit_result]
+
+  verify_library_fit:
+    tool: motion-library-fit-checker-verifier
+    depends_on: [score_library_fit]
+    inputs:
+      input_path: ${{ steps.score_library_fit.outputs.fit_result }}
+    outputs: [fit_verification]
+
+  implement_motion:
+    skill: react-motion-implementation
+    depends_on: [verify_library_fit]
+    outputs: [changed_files, implementation_summary]
+
+  inspect_motion_diff:
+    tool: react-motion-diff-checker
+    depends_on: [implement_motion]
+    inputs:
+      input_path: ${{ steps.implement_motion.outputs.changed_files }}
+    outputs: [diff_result]
+
+  verify_motion_diff:
+    tool: react-motion-diff-checker-verifier
+    depends_on: [inspect_motion_diff]
+    inputs:
+      input_path: ${{ steps.inspect_motion_diff.outputs.diff_result }}
+    outputs: [diff_verification]
+
+  validate_delivery:
+    skill: motion-quality-validation
+    depends_on: [verify_motion_diff]
+    outputs: [validation_result, remaining_risks]
+
+error_handling:
+  on_failure: halt

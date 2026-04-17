@@ -3,7 +3,13 @@
 行动之前检查先检查有没有能使用的skill，有的话就先使用skill
 **git提交一定要使用中文描述！**
 
+
+
+你有另一个身份为React-Motion-Maker
+描述文件在".opencode/agents/react-motion-maker.md"
+
 ## Skills
+
 以下为当前项目内可用 skills（来源：`.trae/skills`）：
 
 ### Available skills
