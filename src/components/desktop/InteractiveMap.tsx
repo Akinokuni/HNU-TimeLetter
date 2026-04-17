@@ -1,12 +1,15 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
+import { MapPin } from 'lucide-react';
 import data from '@/data/content.json';
 import { StoryView } from './StoryView';
 import { QuillSearch } from './QuillSearch';
 import { LocationPoint } from '@/lib/types';
+import { useContainedMapSize } from '@/lib/hooks';
+import { getPrimaryStory, getStoryAvatarUrl } from '@/lib/content';
 
 /**
  * InteractiveMap (交互式地图组件) — 重构版
@@ -68,43 +71,27 @@ export function InteractiveMap() {
 
   // ─── 容器 & 地图尺寸计算 ──────────────────────────────────────────────────
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
   const [mapAspect, setMapAspect] = useState<number | null>(null);
 
   /**
    * rollOffset: clipPath 动画的裁剪量 (像素)
    * = 容器宽度 - STRIP_WIDTH
    * 使用数值而非 calc() 字符串，保证 Framer Motion 插值可靠
-   */
+  */
   const [rollOffset, setRollOffset] = useState(0);
 
-  useLayoutEffect(() => {
-    const container = mapContainerRef.current;
-    if (!container) return;
+  const handleContainerResize = useCallback(({ width }: { width: number; height: number }) => {
+    setRollOffset(Math.max(0, width - STRIP_WIDTH));
+  }, []);
 
-    const updateLayout = () => {
-      const { width, height } = container.getBoundingClientRect();
-      if (!width || !height) return;
+  const shouldMeasureMap = useCallback(() => {
+    return phaseRef.current !== 'rolling' && phaseRef.current !== 'unrolling';
+  }, []);
 
-      setRollOffset(Math.max(0, width - STRIP_WIDTH));
-
-      if (!mapAspect) return;
-      // 动画过渡期间（rolling/unrolling）跳过地图尺寸更新，避免无效 re-render
-      if (phaseRef.current === 'rolling' || phaseRef.current === 'unrolling') return;
-
-      const containerAspect = width / height;
-      if (containerAspect > mapAspect) {
-        setMapSize({ width: height * mapAspect, height });
-      } else {
-        setMapSize({ width, height: width / mapAspect });
-      }
-    };
-
-    updateLayout();
-    const obs = new ResizeObserver(updateLayout);
-    obs.observe(container);
-    return () => obs.disconnect();
-  }, [mapAspect]);
+  const mapSize = useContainedMapSize(mapContainerRef, mapAspect, {
+    onContainerResize: handleContainerResize,
+    shouldMeasure: shouldMeasureMap,
+  });
 
   // ─── 事件处理器 ────────────────────────────────────────────────────────────
 
@@ -151,7 +138,7 @@ export function InteractiveMap() {
         setTimeout(() => {
           setBouncingPinId(null);
           const loc = data.locations.find((l) => l.id === target);
-          if (loc && loc.stories.length > 0) {
+          if (loc) {
             setActiveLocation(loc as LocationPoint);
             setIsMapRolled(true);
             setPhase('rolling');
@@ -259,8 +246,7 @@ export function InteractiveMap() {
 
                 {/* 地图 Pin 点 */}
                 {data.locations.map((loc) => {
-                  const latestStory = loc.stories[0];
-                  if (!latestStory) return null;
+                  const latestStory = getPrimaryStory(loc);
 
                   const isBouncing = bouncingPinId === loc.id;
 
@@ -287,23 +273,31 @@ export function InteractiveMap() {
                       }
                       onClick={() => handleLocationSelect(loc)}
                     >
-                      {/* Avatar 气泡 */}
-                      <div className="w-12 h-12 rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white opacity-90 hover:opacity-100 hover:scale-110 hover:-translate-y-2 transition-all duration-300 relative z-10">
-                        <Image
-                          src={latestStory.avatarUrl}
-                          alt={latestStory.characterName}
-                          width={48}
-                          height={48}
-                          className="object-cover"
-                          sizes="48px"
-                        />
-                      </div>
+                      {latestStory ? (
+                        <div className="w-12 h-12 rounded-full border-[3px] border-white shadow-lg overflow-hidden bg-white opacity-90 hover:opacity-100 hover:scale-110 hover:-translate-y-2 transition-all duration-300 relative z-10">
+                          <Image
+                            src={getStoryAvatarUrl(latestStory)}
+                            alt={latestStory.characterName}
+                            width={48}
+                            height={48}
+                            className="object-cover"
+                            sizes="48px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative z-10 flex h-12 w-12 items-center justify-center rounded-full border-[3px] border-[#cfae7a] bg-[#fff7eb] text-[#8b5a2b] shadow-lg opacity-90 transition-all duration-300 hover:-translate-y-2 hover:scale-110 hover:opacity-100">
+                          <MapPin className="h-5 w-5" />
+                        </div>
+                      )}
 
                       {/* Hover Tooltip */}
                       <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black/80 text-white text-sm px-3 py-1.5 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap pointer-events-none z-20">
                         {loc.name}
                         {loc.stories.length > 1 && (
                           <span className="ml-1 text-xs text-gray-300">({loc.stories.length})</span>
+                        )}
+                        {loc.stories.length === 0 && (
+                          <span className="ml-1 text-xs text-gray-300">(待补内容)</span>
                         )}
                       </div>
                     </motion.div>

@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence, useMotionValue, useTransform } from 'framer-motion';
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import type { Story } from '@/lib/types';
+import { getStoryAvatarUrl, getStoryMainImageUrl } from '@/lib/content';
 
 interface MobileDetailModalProps {
   story: Story | null;
@@ -96,7 +97,7 @@ export function MobileDetailModal({
           if (info.offset.y > 60 || info.velocity.y > 300) {
             onClose();
           } else {
-            dragY.set(0);
+            void animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 });
           }
         }}
       >
@@ -144,7 +145,7 @@ export function MobileDetailModal({
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <Image src={story.mainImageUrl} alt={story.characterName} fill className="object-cover" priority sizes="100vw" />
+                <Image src={getStoryMainImageUrl(story)} alt={story.characterName} fill className="object-cover" priority sizes="100vw" />
               </motion.div>
             </AnimatePresence>
 
@@ -175,7 +176,7 @@ export function MobileDetailModal({
           >
             <div className="flex items-center gap-5 mb-8">
               <motion.div key={`avatar-${story.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-16 h-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex-shrink-0">
-                <Image src={story.avatarUrl} alt={story.characterName} fill className="object-cover" sizes="64px" />
+                <Image src={getStoryAvatarUrl(story)} alt={story.characterName} fill className="object-cover" sizes="64px" />
               </motion.div>
               <div className="flex flex-col">
                 <h2 className="text-2xl font-serif text-stone-800 tracking-tight mb-2">{story.characterName}</h2>

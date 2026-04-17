@@ -15,6 +15,7 @@ import { MobileDetailModal } from './MobileDetailModal';
 import { StaticMapModal } from './StaticMapModal';
 import data from '@/data/content.json';
 import type { Story } from '@/lib/types';
+import { flattenStoriesWithLocationName } from '@/lib/content';
 
 export function MobileExperience() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -27,12 +28,7 @@ export function MobileExperience() {
 
   // 扁平化全局故事列表
   const allStories = useMemo(() => {
-    return data.locations.flatMap(loc => 
-      loc.stories.map(story => ({
-        ...story,
-        locationName: loc.name
-      }))
-    ) as Story[];
+    return flattenStoriesWithLocationName(data.locations) as Story[];
   }, []);
 
   const currentStory = useMemo(() => 

@@ -3,6 +3,7 @@
 import { motion, useMotionValue, useTransform, PanInfo, animate, MotionValue, useMotionValueEvent, MotionStyle } from 'framer-motion';
 import { Story } from '@/lib/types';
 import { memo, useCallback, useEffect, useMemo } from 'react';
+import { getStoryMainImageUrl } from '@/lib/content';
 
 interface StoryCardStackProps {
     stories: Story[];
@@ -38,7 +39,7 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect }: St
     useEffect(() => {
         stories.forEach((story) => {
             const img = new Image();
-            img.src = story.mainImageUrl;
+            img.src = getStoryMainImageUrl(story);
         });
     }, [stories]);
 
@@ -192,7 +193,7 @@ function CardComponent({ story, isTop, offset, storyCount, sharedDragX, zIndex, 
             <div className="relative h-full w-auto">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                    src={story.mainImageUrl}
+                    src={getStoryMainImageUrl(story)}
                     alt={story.characterName}
                     className="h-full w-auto object-cover rounded-sm pointer-events-none select-none block"
                     draggable={false}

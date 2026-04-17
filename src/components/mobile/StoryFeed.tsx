@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import { useMemo } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import data from '@/data/content.json';
 import type { Story } from '@/lib/types';
+import { flattenStoriesWithLocationName, getStoryAvatarUrl, getStoryMainImageUrl } from '@/lib/content';
 
 interface StoryFeedProps {
   onStoryClick: (story: Story) => void;
@@ -28,7 +29,7 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
           className="w-full h-full"
         >
           <Image
-            src={story.mainImageUrl}
+            src={getStoryMainImageUrl(story)}
             alt={story.characterName}
             fill
             className="object-cover"
@@ -41,7 +42,7 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
         <div className="flex items-center gap-2 mb-1.5">
           <div className="relative w-5 h-5 rounded-full overflow-hidden border border-stone-100 flex-shrink-0">
             <Image
-              src={story.avatarUrl}
+              src={getStoryAvatarUrl(story)}
               alt={story.characterName}
               fill
               className="object-cover"
@@ -65,12 +66,9 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
  * 负责人: Developer C
  */
 export function StoryFeed({ onStoryClick }: StoryFeedProps) {
-  const allStories = data.locations.flatMap(loc => 
-    loc.stories.map(story => ({
-      ...story,
-      locationName: loc.name
-    }))
-  ) as Story[];
+  const allStories = useMemo(() => {
+    return flattenStoriesWithLocationName(data.locations) as Story[];
+  }, []);
 
   return (
     <div className="w-full px-4 py-6 overflow-y-auto h-full scrollbar-hide">
