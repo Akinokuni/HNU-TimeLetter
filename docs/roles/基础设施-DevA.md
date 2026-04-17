@@ -13,6 +13,7 @@
 - **Styling**: `Tailwind CSS` + `clsx` + `tailwind-merge`
 - **UI Library**: `Shadcn/UI` (Button, Dialog, ScrollArea, Tooltip)
 - **Animation**: `Framer Motion`
+- **Smooth Scroll**: `Lenis`（桌面端启封态下滚页面群）
 - **Icons**: `Lucide React`
 - **State**: `Zustand` (用于管理全局状态)
 
