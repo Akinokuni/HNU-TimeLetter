@@ -435,7 +435,8 @@ export function EnvelopeIntro() {
                 {/* 顶部封盖 — 3D 翻转
                  *  注意：不能靠父级 variants 传递（祖父 motion.div 使用 shellDropControls
                  *  的独立 animate 打断了变体传播链）。改为直接基于 isOpening 状态驱动 animate。
-                 *  翻转至 90° 前（0.15s 处）zIndex 立即降到 0，使翻盖在后半程位于信纸（z-10）之后。
+                 *  zIndex 由 Framer Motion 的 animate + transition.delay 调度，在翻转至 90°
+                 *  附近（0.15s）瞬时从 30 切到 0，避免前半程就被错误地放到信纸之后。
                  *  translateZ(-2) 避免 3D 空间内与信纸 z-fighting。
                  */}
                 <motion.div
@@ -443,17 +444,18 @@ export function EnvelopeIntro() {
                   style={{
                     clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
                     transformStyle: 'preserve-3d',
-                    zIndex: isOpening ? 0 : 30,
                   }}
-                  initial={{ rotateX: 0, translateZ: 0 }}
+                  initial={{ rotateX: 0, translateZ: 0, zIndex: 30 }}
                   animate={
                     isOpening
-                      ? { rotateX: 180, translateZ: -2 }
-                      : { rotateX: 0, translateZ: 0 }
+                      ? { rotateX: 180, translateZ: -2, zIndex: 0 }
+                      : { rotateX: 0, translateZ: 0, zIndex: 30 }
                   }
                   transition={{
                     rotateX: { duration: 0.6, ease: 'easeInOut' },
                     translateZ: { delay: 0.15, duration: 0.1 },
+                    // 翻转到 ~90° 之前就切换 zIndex，使翻盖立即落到信纸（z-10）之后
+                    zIndex: { delay: 0.15, duration: 0, type: 'tween' },
                   }}
                 >
                   <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
