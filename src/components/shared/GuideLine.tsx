@@ -24,12 +24,16 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  *  - P4→P5 是跨越"关于我们"整个页面的连续折线段。
  *
  * 渲染区域裁剪（关键）：
- *  - SVG 的可视区域严格受限于三页范围：顶边 = apTop - 60（保留 P1 圆角端点从丝带
- *    下方"长出"的视觉余量），底边 = crTop + crH（鸣谢页底边，即页脚红条顶部）。
+ *  - SVG 的可视区域通过蒙版硬裁剪：顶边 = apTop - 60（保留 P1 圆角端点从丝带
+ *    下方长出的视觉余量），底边 = footer 首个片内文本顶边上方 10px
+ *    （动态测量 `footer a span` 的 bbox）。
+ *  - 这样：引导线视觉尾端可以伸入 footer 的 #C23643 红色区域（与页脚背景同色
+ *    蟍融，呈现"线条归到红带"的视觉效果），同时严格停在首条链接文本上方 10px，
+ *    避免覆盖 QQ 交流群 / HIMEMATSU / 版权条。
  *  - 配合 `overflow: hidden`，任何超出底边的描边（包括 P6 圆角端点的外沿）都会被
- *    SVG 视口硬裁剪，彻底杜绝红线渲染到 footer 之上，保证页脚文字始终清晰。
- *  - 这是针对"P6 调整数值仍偶有覆盖页脚文字"的根治方案：不再依赖数值微调，
- *    而是用蒙版（SVG 视口 + overflow:hidden）从渲染层面禁止三页之外的输出。
+ *    SVG 视口硬裁剪。
+ *  - 没测到 footer（SSR / footer 未挂载）时退化为 `crTop + crH + 26`：约在鸣谢页底边下
+ *    26px，位于 footer 红带中，py-5 (20px) + py-3.5 (14px) 链接内边距之内，也不压文字。
  */
 
 interface GuideLineProps {
@@ -70,6 +74,16 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const crTop = crRect.top + window.scrollY - containerTop;
     const crH = crRect.height;
 
+    // 动态测量 footer 第一个链接文本的位置，以便引导线尾部
+    // 裁剪在文本上方 10px：视觉上伸入页脚红带、但永不压字。
+    const footerEl = document.querySelector('footer');
+    const firstLinkSpan = footerEl?.querySelector('a span');
+    let firstLinkDocTop: number | null = null;
+    if (firstLinkSpan) {
+      const rect = firstLinkSpan.getBoundingClientRect();
+      firstLinkDocTop = rect.top + window.scrollY - containerTop;
+    }
+
     // 丝带水平中心：丝带位于 col-start-1（0~20%vw）的 flex justify-end 内，宽 100px。
     // 所以丝带中心 x = 20%vw - 50px（响应式，任意屏宽均与丝带精确对齐）。
     const ribbonX = vw * 0.2 - 50;
@@ -89,12 +103,14 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     //     之前用 1.03 时端点落在 footer 内 27px，cap 又 +28px 压住了 "QQ 交流群" 行。
     const p6 = { x: vw * 0.32, y: crTop + crH * 0.97 };
 
-    // SVG 覆盖范围：三页裁剪盒。
+    // SVG 覆盖范围：蒙版裁剪盒。
     //   顶边：P1 上方 60px（容纳 stroke 圆角端点，使引导线从丝带下方长出）
-    //   底边：严格等于鸣谢页底边 crTop + crH —— 与 overflow:hidden 合用作为蒙版，
-    //        禁止任何引导线像素渲染到页脚（footer）之上。
+    //   底边：footer 首个链接文本顶边 - 10px（伸入红带、不压文字）；
+    //        未测到 footer 时退化为 crTop + crH + 26。
     const svgTop = p1.y - 60;
-    const svgBottom = crTop + crH;
+    const svgBottom = firstLinkDocTop !== null
+      ? firstLinkDocTop - 10
+      : crTop + crH + 26;
     const svgHeight = svgBottom - svgTop;
 
     // 所有 Y 坐标相对于 SVG 顶部
@@ -126,10 +142,14 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
 
   // 初始化 + resize 时重新计算路径
   useEffect(() => {
-    const timer = setTimeout(recalculate, 200);
+    // 首次 200ms 后计算；再在 800ms 后促一次，以防 footer 的字体/图标因异步资源
+    // 导致 span bbox 未稳定。两次计算保证尾部裁剪线精确对齐到文本顶边。
+    const t1 = setTimeout(recalculate, 200);
+    const t2 = setTimeout(recalculate, 800);
     window.addEventListener('resize', recalculate);
     return () => {
-      clearTimeout(timer);
+      clearTimeout(t1);
+      clearTimeout(t2);
       window.removeEventListener('resize', recalculate);
     };
   }, [recalculate]);
