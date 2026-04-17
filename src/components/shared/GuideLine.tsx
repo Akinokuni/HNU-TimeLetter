@@ -13,17 +13,16 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  * - 非可逆单向线性插值：向下滚动时正向曝光，向上回滚时冻结在历史最远端
  *
  * 路径坐标（相对占比）：
- *   首屏衔接：PH (ribbonX, -apH) 丝带中心正上方（在首屏顶部），被首屏 page-paper 遮盖
  *   关于企划页：P1(ribbonX,0%) → P2(ribbonX,10%) → P3(19.15%,12.5%) → P4(107.5%,40.43%)
- *   鸣谢页：    P5(-2.19%,65.40%) → P6(32%,200%)
+ *   鸣谢页：    P5(-2.19%,65.40%) → P6(32%,103%)
  *
  * 衔接细节：
- *  - PH→P1：一条贯穿整个首屏的竖直段，使引导线与丝带底部自然对接。
- *    由于引导线 SVG 的 zIndex 低于首屏 (z-50)，PH 到首屏范围的线段被首屏页面遮盖，
- *    滚动离开首屏后，下方 P1→P2 的竖直段才会显露，从丝带结束的位置"自然延续"下来。
+ *  - 路径从 P1 开始 —— P1 精确位于首屏底边（= 丝带视觉终点），
+ *    因此用户刚开始下滑即可看到引导线从丝带下方伸出，无"空走"。
  *  - ribbonX 使用 20%vw - 50px 动态计算（对应丝带 100px 宽容器 + col-start-1 justify-end），
  *    保证在所有屏幕尺寸下都与丝带中心精确对齐。
- *  - P6 延伸至鸣谢页 200%（100vh 以下），视觉上伸入页脚红色区域。
+ *  - P6 仅超过鸣谢页底部 3%（约 30px），加上 50px 圆角端点后视觉上"触及"页脚红色区域，
+ *    但不会覆盖页脚文字（QQ 交流群 / HIMEMATSU / 版权条）。
  *  - P4→P5 是跨越"关于我们"整个页面的连续折线段。
  */
 
@@ -70,9 +69,7 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const ribbonX = vw * 0.2 - 50;
 
     // 计算路径各点的像素坐标（相对于 ScrollSections 容器）
-    // PH: 丝带中心正上方，与首屏顶部对齐（y = apTop - apH = 0），被首屏 z-50 遮盖
-    //     — 提供从"首屏之上"贯穿首屏的竖直延伸，保证离开首屏后引导线从丝带底部自然衔接。
-    const pH = { x: ribbonX, y: apTop - apH };
+    // P1: 丝带正下方、首屏底边 —— 路径起点。这样微量下滑即可立即看到引导线从丝带底部伸出。
     const p1 = { x: ribbonX, y: apTop };
     // P2: 竖直段下延至 10% apH —— 留出明显的一段"先竖直再转弯"
     const p2 = { x: ribbonX, y: apTop + apH * 0.10 };
@@ -80,11 +77,12 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const p4 = { x: vw * 1.075, y: apTop + apH * 0.4043 };
     // P5 在鸣谢页（跨越了关于我们页面）
     const p5 = { x: vw * -0.0219, y: crTop + crH * 0.654 };
-    // P6: 延伸至鸣谢页 200% 位置（100vh 以下），视觉上伸入页脚红色区域
-    const p6 = { x: vw * 0.32, y: crTop + crH * 2.0 };
+    // P6: 仅超过鸣谢页底部 3%（~30px），加上 50px 圆角端点后"触及"页脚顶部红边，
+    //     但不会覆盖页脚文字（原 200% 过量伸出导致 QQ交流群/HIMEMATSU 被压住）。
+    const p6 = { x: vw * 0.32, y: crTop + crH * 1.03 };
 
-    // SVG 覆盖范围：从 PH 到 P6
-    const svgTop = pH.y - 60; // 上方留出 stroke 宽度余量
+    // SVG 覆盖范围：从 P1 到 P6（加 60px 余量容纳 stroke 圆角端点）
+    const svgTop = p1.y - 60;
     const svgBottom = p6.y + 60;
     const svgHeight = svgBottom - svgTop;
 
@@ -94,7 +92,6 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       y: p.y - svgTop,
     });
 
-    const lpH = toLocal(pH);
     const lp1 = toLocal(p1);
     const lp2 = toLocal(p2);
     const lp3 = toLocal(p3);
@@ -102,10 +99,9 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const lp5 = toLocal(p5);
     const lp6 = toLocal(p6);
 
-    // 一条完整连续折线：PH→P1→P2→P3→P4→P5→P6
+    // 一条完整连续折线：P1→P2→P3→P4→P5→P6
     const d = [
-      `M ${lpH.x} ${lpH.y}`,
-      `L ${lp1.x} ${lp1.y}`,
+      `M ${lp1.x} ${lp1.y}`,
       `L ${lp2.x} ${lp2.y}`,
       `L ${lp3.x} ${lp3.y}`,
       `L ${lp4.x} ${lp4.y}`,

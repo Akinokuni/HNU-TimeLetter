@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type Lenis from 'lenis';
 
 /**
@@ -8,13 +8,15 @@ import type Lenis from 'lenis';
  *
  * 复刻 todo/滚动.md 中所描述的简洁悬浮式滑块：
  *  - 轨道 (.scrollbar)：固定在视口右侧，宽 15px，透明背景，z-index 1000
- *  - 滑块 (.scrollbar-thumb)：宽 10px，主题色 #c23643，高度随页面比例动态计算
+ *  - 滑块 (.scrollbar-thumb)：宽 10px，高度随页面比例动态计算
+ *    · 默认：透明填充 + 1px #c23643 细描边（像一条竖向描边矩形）
+ *    · 鼠标悬停滑块时：填充为实心 #c23643，呈现"激活"态
  *  - 通过 Lenis 的 'scroll' 事件驱动滑块位移，保证平滑滚动与滑块同步
  *  - 原生滚动条已在 globals.css 中隐藏
  *
  * 使用：在页面需要滚动时挂载；不需要时（如地图页）可通过 enabled=false 卸载。
  *
- * 注：滑块自身保留 pointer-events: auto 以支持未来的点击/拖拽，
+ * 注：滑块自身保留 pointer-events: auto 以支持悬停/点击/拖拽，
  *     轨道则 pointer-events: none，避免干扰页面其他交互。
  */
 interface CustomScrollbarProps {
@@ -27,6 +29,7 @@ interface CustomScrollbarProps {
 export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollbarProps) {
   const thumbRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -108,11 +111,16 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
       <div
         ref={thumbRef}
         className="absolute top-0 pointer-events-auto"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         style={{
           right: '2.5px',
           width: '10px',
-          backgroundColor: '#c23643',
+          backgroundColor: hovered ? '#c23643' : 'transparent',
+          border: '1px solid #c23643',
           borderRadius: '5px',
+          boxSizing: 'border-box',
+          transition: 'background-color 180ms ease',
           willChange: 'transform, height',
         }}
       />

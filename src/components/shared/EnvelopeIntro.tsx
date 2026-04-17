@@ -432,28 +432,28 @@ export function EnvelopeIntro() {
                   style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 50%)' }}
                 />
 
-                {/* 顶部封盖 — 3D翻转，翻转至 90° 时 zIndex 立即降到 0
-                 *  （由 z-30 → z-0，使翻盖在翻转后位于信纸 z-10 之后，即"卡片背后"）
-                 *  同时在翻转过半时整体后推 translateZ(-1px)，避免 3D 空间内与信纸 z-fighting。
+                {/* 顶部封盖 — 3D 翻转
+                 *  注意：不能靠父级 variants 传递（祖父 motion.div 使用 shellDropControls
+                 *  的独立 animate 打断了变体传播链）。改为直接基于 isOpening 状态驱动 animate。
+                 *  翻转至 90° 前（0.15s 处）zIndex 立即降到 0，使翻盖在后半程位于信纸（z-10）之后。
+                 *  translateZ(-2) 避免 3D 空间内与信纸 z-fighting。
                  */}
                 <motion.div
-                  className="absolute inset-x-0 top-0 z-30 h-1/2 origin-top bg-[#e8e0d5] shadow-md"
+                  className="absolute inset-x-0 top-0 h-1/2 origin-top bg-[#e8e0d5] shadow-md"
                   style={{
                     clipPath: 'polygon(0 0, 100% 0, 50% 100%)',
                     transformStyle: 'preserve-3d',
+                    zIndex: isOpening ? 0 : 30,
                   }}
-                  variants={{
-                    open: {
-                      rotateX: 180,
-                      translateZ: -2,
-                      zIndex: 0,
-                      transition: {
-                        rotateX: { duration: 0.6, ease: 'easeInOut' },
-                        translateZ: { delay: 0.15, duration: 0.1 },
-                        // 翻转到 90° 之前就切换 zIndex，使翻盖立即落到信纸（z-10）之后
-                        zIndex: { delay: 0.15, duration: 0, type: 'tween' },
-                      },
-                    },
+                  initial={{ rotateX: 0, translateZ: 0 }}
+                  animate={
+                    isOpening
+                      ? { rotateX: 180, translateZ: -2 }
+                      : { rotateX: 0, translateZ: 0 }
+                  }
+                  transition={{
+                    rotateX: { duration: 0.6, ease: 'easeInOut' },
+                    translateZ: { delay: 0.15, duration: 0.1 },
                   }}
                 >
                   <div className="backface-hidden absolute inset-0 rotate-x-180 bg-[#ded6ca]" />
