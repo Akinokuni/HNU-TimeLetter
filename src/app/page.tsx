@@ -10,6 +10,7 @@ import { InteractiveMap } from '@/components/desktop/InteractiveMap';
 import { MobileExperience } from '@/components/mobile/MobileExperience';
 import { ScrollSections } from '@/components/sections/ScrollSections';
 import { Footer } from '@/components/sections/Footer';
+import { CustomScrollbar } from '@/components/shared/CustomScrollbar';
 
 export default function Home() {
   const { isEnvelopeOpened, isTransitioning, setTransitioning } = useAppStore();
@@ -18,7 +19,8 @@ export default function Home() {
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 虚拟滚动动量：仅在桌面端 + 信封未打开（可滚动浏览关于页面）时启用
-  useVirtualScroll(mounted && !isEnvelopeOpened && !isMobile);
+  const lenis = useVirtualScroll(mounted && !isEnvelopeOpened && !isMobile);
+  const scrollbarEnabled = mounted && !isEnvelopeOpened && !isMobile;
 
   // 避免 SSR Hydration 问题
   useEffect(() => {
@@ -97,11 +99,27 @@ export default function Home() {
         {isTransitioning && (
           <motion.div
             key="transition-overlay"
-            className="fixed inset-0 z-[100] page-paper flex items-center justify-center"
+            className="fixed inset-0 z-[100] page-paper flex flex-col items-center justify-center gap-6"
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1, ease: 'easeInOut' }}
           >
+            {/* 加载动画：三点脉冲 */}
+            <div className="flex items-center gap-2">
+              {[0, 1, 2].map((i) => (
+                <motion.span
+                  key={i}
+                  className="block w-2.5 h-2.5 rounded-full bg-[#c23643]"
+                  animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
+                  transition={{
+                    duration: 1.2,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                    delay: i * 0.15,
+                  }}
+                />
+              ))}
+            </div>
             <motion.p
               className="font-serif text-muted-foreground text-lg tracking-[0.22em]"
               animate={{ opacity: [0.4, 0.8, 0.4] }}
@@ -112,6 +130,9 @@ export default function Home() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── 自定义滑块：与 Lenis 同步的 DOM 滚动条 ── */}
+      <CustomScrollbar enabled={scrollbarEnabled} lenis={lenis} />
     </main>
   );
 }
