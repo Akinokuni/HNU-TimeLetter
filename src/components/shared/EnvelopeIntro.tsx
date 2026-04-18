@@ -199,7 +199,7 @@ function calcLetterCenterOffset(): { x: number; y: number } {
  * 主组件
  * ──────────────────────────────────────────── */
 export function EnvelopeIntro() {
-  const { setEnvelopeOpened, setTransitioning } = useAppStore();
+  const { setEnvelopeOpened, setTransitioning, setIntroReady } = useAppStore();
   const [phase, setPhase] = useState<Phase>('loading');
   const [ribbonRevealed, setRibbonRevealed] = useState(false);
   const [titleVisible, setTitleVisible] = useState(false);
@@ -237,6 +237,7 @@ export function EnvelopeIntro() {
         if (!cancelled) {
           setTitleVisible(true);
           setPhase('idle');
+          setIntroReady(true);
         }
         return;
       }
@@ -263,6 +264,7 @@ export function EnvelopeIntro() {
       // phaseRef.current 可在 await 期间被异步更新为 'opening'
       if (cancelled || (phaseRef as React.RefObject<Phase>).current === 'opening') return;
       setPhase('idle');
+      setIntroReady(true);
 
       // 闲置呼吸浮动 — 赋予信封生命感
       envelopeControls.start({
@@ -289,7 +291,7 @@ export function EnvelopeIntro() {
       if (frame2 !== undefined) cancelAnimationFrame(frame2);
       if (titleTimer !== undefined) clearTimeout(titleTimer);
     };
-  }, [envelopeControls, prefersReducedMotion]);
+  }, [envelopeControls, prefersReducedMotion, setIntroReady]);
 
   /* ─── 开信交互 ─── */
   const handleOpen = useCallback(async () => {

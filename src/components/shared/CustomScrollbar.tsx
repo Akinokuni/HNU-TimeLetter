@@ -30,6 +30,7 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
   const thumbRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   useEffect(() => {
     if (!enabled) return;
@@ -99,7 +100,53 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
     };
   }, [enabled, lenis]);
 
+  // 鼠标拖动滑块调节页面滚动位置
+  const handleThumbMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!enabled) return;
+    const thumb = thumbRef.current;
+    if (!thumb) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const startPointerY = e.clientY;
+    const scrollHeight = document.documentElement.scrollHeight;
+    const viewportHeight = window.innerHeight;
+    const scrollLimit = Math.max(0, scrollHeight - viewportHeight);
+    const trackRange = Math.max(1, viewportHeight - thumb.offsetHeight);
+    const startScroll = lenis ? lenis.scroll : window.scrollY;
+
+    setDragging(true);
+    const prevUserSelect = document.body.style.userSelect;
+    const prevCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'grabbing';
+
+    const onMove = (ev: MouseEvent) => {
+      const deltaY = ev.clientY - startPointerY;
+      const scrollDelta = (deltaY / trackRange) * scrollLimit;
+      const target = Math.max(0, Math.min(scrollLimit, startScroll + scrollDelta));
+      if (lenis) {
+        lenis.scrollTo(target, { immediate: true });
+      } else {
+        window.scrollTo(0, target);
+      }
+    };
+
+    const onUp = () => {
+      setDragging(false);
+      document.body.style.userSelect = prevUserSelect;
+      document.body.style.cursor = prevCursor;
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
   if (!enabled) return null;
+
+  const active = hovered || dragging;
 
   return (
     <div
@@ -113,13 +160,15 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
         className="absolute top-0 pointer-events-auto"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        onMouseDown={handleThumbMouseDown}
         style={{
           right: '2.5px',
           width: '10px',
-          backgroundColor: hovered ? '#c23643' : 'transparent',
+          backgroundColor: active ? '#c23643' : 'transparent',
           border: '1px solid #c23643',
           borderRadius: '5px',
           boxSizing: 'border-box',
+          cursor: dragging ? 'grabbing' : 'grab',
           transition: 'background-color 180ms ease',
           willChange: 'transform, height',
         }}

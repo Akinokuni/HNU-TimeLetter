@@ -241,6 +241,15 @@ body.home-scrollbar-hidden::-webkit-scrollbar {
   display: none !important;
 }
 
+/* 开屏入场动画期间禁止下滑 —— 交互设计 §1.1 */
+html.intro-scroll-locked,
+body.intro-scroll-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  height: 100vh;
+}
+
 @layer utilities {
   /* 正文排印 —— 视觉规范 §2.2.4 */
   .text-intro {
