@@ -230,10 +230,14 @@ export function InteractiveMap() {
                * 地图展示框：围绕可见地图内容的白色实体边框。
                *   - 宽度 6px、纯白 (#FFFFFF)；搭配 object-contain 的 SVG 填充，
                *     边框紧贴地图实际可见矩形，不随容器留白扩张。
+               *   - `box-content` 关键：保持 width/height 对应 mapSize.*
+               *     的内容区，边框绘制在其外侧，避免内容区宽高比偏移导致
+               *     `object-contain` 产生 letterbox、进而使 Pin 百分比坐标
+               *     相对底图发生偏移。
                *   - 叠加柔和投影以在米色底页上与地图本体分离。
                */}
               <div
-                className="relative border-[6px] border-white shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
+                className="relative box-content border-[6px] border-white shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
                 style={{ width: mapSize.width, height: mapSize.height }}
               >
 
