@@ -19,14 +19,16 @@ import { motion, useInView } from 'framer-motion';
  *    介绍主页所需的视觉权重。
  *
  * 引导线穿越关系：P4(107.5%, 40.43%) → P5(-2.19%, 65.40%) 的对角线由右上
- * 到左下贯穿本页，中段 y_mid 位于 x ≈ 54%·vw。
+ * 到左下贯穿本页。
  *
- * 排版分区：
- *   - 左：文案块 `absolute left-0 top-1/2 w-[60%] px-[5%]`，垂直居中，占页左
- *     60% 宽度；文本左对齐。容器内首位 `float:right` 的 shape-outside 占位块
- *     按引导线斜率收束正文右端，保证文字不越过引导线。
- *   - 右：成员金字塔 `ml-auto pr-[5%] max-w-[38%]`，占页右 ~40%；3 列等宽
- *     轨道，最靠左列中心位于 ~65%·vw，整体位于引导线右下方。
+ * 避让策略：
+ *   - 左侧文案块：`absolute left-[5%] top-[14%] max-w-[30%]`；在页面上半段
+ *     （y ≤ 20%·auH）引导线 x ≥ ~70%·vw，与左侧文案（x ∈ [5%, 35%]·vw）
+ *     有 35%·vw 以上的横向安全间距，无需 shape-outside 即自然避让。
+ *   - 右侧成员金字塔：grid 布局不参与行内流，shape-outside 对其无效；
+ *     通过「右锚定 + 3 列等宽轨道 + 中部偏下放置」使每个单元的列中心
+ *     （lg 断点下最靠左的 col-1 中心约在 55%·vw）仍位于对角线（在本页
+ *     中段 x ≈ 54%·vw）的右侧。
  */
 
 interface TeamMember {
@@ -68,37 +70,18 @@ export function AboutUs() {
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 60 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* 左：文案 —— 左侧垂直居中对齐，宽度占页左 60% */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[60%] px-[5%] text-left">
-          {/*
-           * shape-outside 右侧避让：
-           *   - 引导线 P4→P5 从本页顶部 x~78%·vw 斜向下至底部 x~30%·vw；
-           *   - 容器中段（垂直居中）对应引导线 x ≈ 54%·vw，即容器右侧
-           *     ~90% 本地宽度处；
-           *   - float:right 占位块宽 15%、高 22vh，polygon(100% 0, 100% 100%,
-           *     0 100%) 的斜边与引导线方向一致，将正文行的右端沿对角收束，
-           *     保证文字全程位于引导线左上方。
-           * 仅在中等及以上断点启用；移动端回退到常规左对齐流。
-           */}
-          <div
-            aria-hidden
-            className="hidden md:block float-right"
-            style={{
-              width: '15%',
-              height: '22vh',
-              shapeOutside: 'polygon(100% 0, 100% 100%, 0 100%)',
-            }}
-          />
+        {/* 左：文案 —— 左对齐，位于页面上半，避开对角引导线 */}
+        <div className="absolute left-[5%] top-[14%] max-w-[30%] text-left">
           <h2 className="font-serif text-ink-strong tracking-[0.02em] mb-8">
             关于我们
           </h2>
-          <p className="text-intro font-sans text-ink mb-0 max-w-none">
+          <p className="text-intro font-sans text-ink mb-0">
             「海带视研」为本企划的策展与运营团队。主要负责收集与梳理各项提案，协调摄影及后期制作，将抽象的文字构想转化为具体的视觉展品。
           </p>
         </div>
 
-        {/* 右：成员金字塔 —— 3 列网格对齐，右锚定，占页右 ~40% */}
-        <div className="ml-auto pr-[5%] w-full max-w-[40%] md:max-w-[38%] lg:max-w-[35%]">
+        {/* 右：成员金字塔 —— 3 列网格对齐，右锚定 */}
+        <div className="ml-auto pr-[5%] w-full max-w-[56%] md:max-w-[52%] lg:max-w-[48%]">
           <div className="grid grid-cols-3 gap-x-8 gap-y-10 md:gap-x-10 md:gap-y-12 items-start">
             {TEAM_MEMBERS.map((member, i) => {
               const cell = PYRAMID_CELLS[i];

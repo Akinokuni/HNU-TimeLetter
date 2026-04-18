@@ -6,21 +6,22 @@ import { motion, useInView } from 'framer-motion';
 /**
  * 关于企划 (About Project)
  *
- * 左对齐全屏页面，正文沿对角引导线下方自然折行。
+ * 左对齐全屏页面，文案块左锚定、垂直居中、占页面左侧 60% 宽度；
+ * 正文沿对角引导线下方自然折行。
  *
  * 引导线几何（与 GuideLine.tsx 保持一致）：
  *   - 直接落在本页的线段为 P3(19.15%·vw, 12.5%·apH) → P4(107.5%·vw, 40.43%·apH)
  *   - 斜率 dy/dx ≈ 27.93%·pageH / 88.35%·vw ≈ 0.316
  *
  * 排版与避让：
- *   - `<section>`: `items-start pt-[20vh] pb-[12vh] px-[8%]` 将正文顶部对齐到引
- *     导线向右倾斜开始之后的区域；左右各留 8%·vw 的视觉边距。
- *   - 正文容器内首个兄弟元素为 `float: right` 的空白占位块，`shape-outside` 为
- *     对角三角形。该形状从正文顶部延伸至引导线退出视口右边缘时对应的 y 位置
- *     （~22vh），标题与段落行因此沿对角自然向右展开，全程不越过引导线。
+ *   - `<motion.div>`: `flex items-center` 将文案块在垂直方向居中；文案块
+ *     `w-[60%] px-[5%]` 占页面左侧 60%·vw，内容区 x ∈ [5%, 55%]·vw。
+ *   - 垂直居中后，文案块高度约 40vh，纵向跨 y ∈ [~30%, ~70%]·apH；与引导
+ *     线 P3→P4 段的 y 范围 [12.5%, 40.43%]·apH 的交集仅在 y ∈ [30%, 40.43%]·apH。
+ *     在此 y 范围内，引导线 x 从 ~74.5%·vw 单调增至 107.5%·vw，始终位于
+ *     文案块右边缘（x = 60%·vw）之外。文案块天然避让引导线，无需 shape-outside。
  *   - 段落使用 `.text-intro`（视觉规范 §2.2.4），显式 `max-w-none mb-0` 以让出
- *     默认 800px 限宽，让 shape-outside 完整作用于整段文本；段间间距由父级
- *     `space-y-6` 统一控制。
+ *     默认 800px 限宽，让段落充满 60%·vw 列宽；段间间距由父级 `space-y-6` 统一控制。
  */
 export function AboutProject() {
   const contentRef = useRef<HTMLDivElement>(null);
@@ -30,30 +31,12 @@ export function AboutProject() {
     <section className="relative w-full min-h-screen overflow-hidden">
       <motion.div
         ref={contentRef}
-        className="relative z-10 w-full min-h-screen flex items-start pt-[20vh] pb-[12vh] px-[8%]"
+        className="relative z-10 w-full min-h-screen flex items-center"
         initial={{ opacity: 0, y: 60 }}
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 60 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
       >
-        <div className="w-full text-left max-w-[72ch] lg:max-w-none">
-          {/*
-           * shape-outside 对角避让块：
-           *   - width 58% 对应内容容器右侧的退让宽度；
-           *   - height 22vh 覆盖引导线进入正文顶部到从右边缘退出视口的纵向距离；
-           *   - polygon(0 0, 100% 0, 100% 100%) 的斜边与引导线 P3→P4 等方向，
-           *     保证正文行的右端沿对角收束。
-           * 仅在中等及以上断点启用；移动端回退到常规左对齐流。
-           */}
-          <div
-            aria-hidden
-            className="hidden md:block float-right"
-            style={{
-              width: '58%',
-              height: '22vh',
-              shapeOutside: 'polygon(0 0, 100% 0, 100% 100%)',
-            }}
-          />
-
+        <div className="w-[60%] px-[5%] text-left">
           {/* 标题 —— 使用全局 h2 基准字号（视觉规范 §2.2.1） */}
           <h2 className="mb-10 font-serif text-ink-strong tracking-[0.02em]">
             关于企划
