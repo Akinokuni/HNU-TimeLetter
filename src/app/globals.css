@@ -250,8 +250,12 @@ body.intro-scroll-locked {
   height: 100vh;
 }
 
-@layer utilities {
-  /* 正文排印 —— 视觉规范 §2.2.4 */
+@layer components {
+  /* 正文排印 —— 视觉规范 §2.2.4
+   *
+   * 放在 components 层而非 utilities 层：components 层在级联顺序上
+   * 优先级低于 utilities 层，Tailwind 的 `mb-0` / `max-w-*` 等工具类
+   * 可覆盖此处的默认间距与最大宽度，使单点调整无需引入 `!important`。 */
   .text-intro {
     font-size: var(--text-intro);
     line-height: 1.7;
@@ -268,7 +272,9 @@ body.intro-scroll-locked {
     max-width: 65ch;
     margin-bottom: 2rem;
   }
+}
 
+@layer utilities {
   /* 丝带 clip-path 显影动画 — 纯 CSS 过渡，性能优于 JS 驱动 */
   .hero-ribbon-clip {
     clip-path: inset(0% 0% 100% 0%);
