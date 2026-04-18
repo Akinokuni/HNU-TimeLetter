@@ -94,7 +94,7 @@ src/
 └── scripts/                # sync-feishu.ts + 飞书 / OSS 调试脚本
 ```
 
-根目录另有 `public/` 静态资源（含 `Alibaba-PuHuiTi-Medium.otf` / `ZouLDFXKAJ.ttf` 本地字体）、`tests/e2e/` Playwright 用例、以及 `agents/` / `.opencode/agents/` 等协作资产目录（不纳入 `src/` 编译边界）。
+根目录另有 `public/` 静态资源（含 `ChillDINGothic_SemiBold.otf` / `ZouLDFXKAJ.ttf` 本地字体）、`tests/e2e/` Playwright 用例、以及 `agents/` / `.opencode/agents/` 等协作资产目录（不纳入 `src/` 编译边界）。
 
 ## 开发分工
 

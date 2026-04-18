@@ -57,7 +57,7 @@ src/
 ### 1.3 字体配置
 
 在 `src/app/layout.tsx` 中通过 `next/font/local` 加载本地字体：
-- **Display (标题)**: `Alibaba-PuHuiTi-Medium.otf`，CSS 变量 `--font-display`，Tailwind 暴露为 `font-serif`
+- **Display (标题)**: `ChillDINGothic_SemiBold.otf`，CSS 变量 `--font-display`，Tailwind 暴露为 `font-serif`
 - **Body (正文)**: `ZouLDFXKAJ.ttf`，CSS 变量 `--font-body`，Tailwind 暴露为 `font-sans`
 - **Fallback**: `PingFang SC`、`Microsoft YaHei`、系统无衬线
 
