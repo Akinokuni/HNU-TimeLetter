@@ -59,7 +59,11 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
               <div className="relative min-w-[600px] h-full flex items-center justify-center p-4">
                 <div className="relative w-full h-full" ref={mapContainerRef}>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative" style={{ width: mapSize.width, height: mapSize.height }}>
+                    {/* 地图展示框：4px 纯白边框 + 轻微投影，与桌面端保持一致。 */}
+                    <div
+                      className="relative border-4 border-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
+                      style={{ width: mapSize.width, height: mapSize.height }}
+                    >
                       <Image
                         src="/images/map.svg"
                         alt="HNU Map"
