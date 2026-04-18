@@ -209,25 +209,40 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
 
       const scrollY = window.scrollY;
       const vp = window.innerHeight;
+      const containerTop = containerTopRef.current;
+      const svgBottom = svgBottomRef.current;
 
-      // y-aware 进度映射：让画出的线尾跟随"视口底在路径上的 y 位置"
+      // y-aware 进度映射：让画出的线尾跟随"视口某一 y 基准线在路径上的 y 位置"
       //
       // 之前的线性映射（progress = (scrollY - startY) / (endY - startY) → drawn = progress * totalLength）
       // 在路径几何不均匀时会出现"线头走在视口下面"：
-      // ─ P1→P4 段曲尽小 y 范围（~13% y）占了 ~28% 路径长度→密集区
-      // ─ P4→P5 段大 y 跨越（~73% y）占了 ~58% 路径长度→稀疏区
+      // ─ P1→P4 段（小 y 范围 ~13%）占了 ~28% 路径长度 → 密集区
+      // ─ P4→P5 段（大 y 跨越 ~73%）占了 ~58% 路径长度 → 稀疏区
       // 线性映射在中段滚动时会把 drawn-end 推到远比视口底低的 y。
       //
-      // 改用 refY = scrollY + vp（文档坐标 = 视口底在文档中的 y）后减去 containerTop
-      // 转到容器坐标系，再在折线上查找这个 y 对应的长度。这样 drawn 终点始终
-      // 精确落在视口底（它是路径穿过视口底的点），尾部不再冲出视口。
-      const refY = scrollY + vp - containerTopRef.current;
-      const svgBottom = svgBottomRef.current;
+      // 改用 refY = scrollY + vp*anchor（文档坐标）后减去 containerTop 转到容器坐标系，
+      // 再在折线上查找这个 y 对应的长度。drawn 终点精确落在 refY 对应的路径点上。
+      //
+      // anchor 策略：
+      // ─ 正常滚动：anchor = 0.6，尾部视觉上锁在视口 60% 位置（上半部偏下，不至于
+      //   甩出视口，也不会贴死视口底带来压迫感）。
+      // ─ 触底前 30% 行程：anchor 从 0.6 平滑过渡到 1.0，让线头在用户看到页脚时
+      //   自然下沉到视口底，配合 snap 完成最后 ~2% 描边（被蒙版裁掉看不到跳）。
+      //   这样既满足 60% 锁定，又让触底时引导线完整到达交界线与页脚衔接。
+      const snapScroll = svgBottom - vp + containerTop; // viewBottom == svgBottom 时的 scrollY
+      const transitionStart = snapScroll * 0.7; // 最后 30% 滚动内 anchor 过渡到 1.0
+      let anchor = 0.6;
+      if (scrollY > transitionStart && snapScroll > transitionStart) {
+        const t = Math.min(1, (scrollY - transitionStart) / (snapScroll - transitionStart));
+        anchor = 0.6 + 0.4 * t;
+      }
+
+      const refY = scrollY + vp * anchor - containerTop;
       let rawProgress: number;
       if (refY >= svgBottom) {
-        // 视口底已到/越过鸣谢底边（= 蒙版底 = 交界线）：snap 到 100%。
-        // 这一"跳"新增的 ~115px 路径全部位于蒙版下方 0~80px 区间，被 overflow:hidden
-        // 裁掉；视觉上用户看不到跳跃，只看到尾部稳定贴在交界线。
+        // refY 已越过鸣谢底边（anchor 接近 1.0 且接近 snapScroll 时才发生）：
+        // snap 到 100%。新画的 ~115px 全部位于蒙版下方，被 overflow:hidden 裁掉，
+        // 用户看不到跳跃，只看到尾部稳定贴在交界线。
         rawProgress = 1;
       } else if (refY <= segs[0].y0) {
         rawProgress = 0;
