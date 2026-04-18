@@ -388,7 +388,7 @@ export function EnvelopeIntro() {
             }}
           >
             <h1
-              className="font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
+              className="mb-0 font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
               style={{ textOrientation: 'upright', writingMode: 'vertical-rl' }}
             >
               与她的海大时光笺

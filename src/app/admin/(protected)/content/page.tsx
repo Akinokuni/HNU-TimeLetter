@@ -16,7 +16,7 @@ export default async function ContentPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">内容数据查看</h2>
+      <h2 className="mb-0 text-2xl font-bold">内容数据查看</h2>
       <p className="text-gray-500">共 {data.locations.length} 个地点</p>
       
       <div className="grid gap-6">

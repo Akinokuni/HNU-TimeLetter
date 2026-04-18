@@ -9,7 +9,7 @@ export default function ProtectedLayout({
     <div className="min-h-screen bg-gray-100 flex">
       <aside className="w-64 bg-white shadow-md flex flex-col fixed h-full z-10">
         <div className="p-6 border-b">
-          <h1 className="text-xl font-bold">与她的海大时光笺</h1>
+          <h1 className="mb-0 text-xl font-bold">与她的海大时光笺</h1>
           <p className="text-xs text-gray-500 mt-1">后台管理系统</p>
         </div>
         <nav className="flex-1 p-4 space-y-2">
