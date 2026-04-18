@@ -183,11 +183,20 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
 
       const apRect = aboutProject.getBoundingClientRect();
       const crRect = credits.getBoundingClientRect();
+      // 滚动驱动的起止位置（分子 / 分母必须匹配可达的滚动区间）：
+      //   startY：aboutProject 顶边刚进入视口时 (scrollY + vp == apTop)
+      //   endY  ：credits 底边刚到视口底时 (scrollY + vp == crBottom)
+      // 之前 endY = crRect.top + scrollY + crH（= credits 文档底边），要求滚动越过
+      // credits 底边才能画完；但由于 FooterSpacer 与固定 footer 的布局特性，实际
+      // 的 maxScrollY = scrollHeight - vp 常达不到这个值（用户实测 36px deadzone），
+      // 导致 rawProgress 在触底时只有 ~0.856，引导线尾部 ~560px 压根没画出。
       const startY = apRect.top + scrollY - vp;
-      const endY = crRect.top + scrollY + crRect.height;
+      const endY = crRect.top + scrollY + crRect.height - vp;
 
-      // 计算线性进度 0→1
-      const rawProgress = Math.max(0, Math.min(1, (scrollY - startY) / (endY - startY)));
+      // 计算线性进度；再在 ≥95% 时 snap 到 1.0，吸收任何残余的布局 deadzone
+      // （固定 footer / spacer 的像素误差、平滑滚动库的余量等）。
+      const linear = (scrollY - startY) / (endY - startY);
+      const rawProgress = linear >= 0.95 ? 1 : Math.max(0, linear);
 
       // 非可逆：只取历史最大值（Math.max(cachedMaxScroll, currentScroll) 算法）
       cachedMaxProgress.current = Math.max(cachedMaxProgress.current, rawProgress);
