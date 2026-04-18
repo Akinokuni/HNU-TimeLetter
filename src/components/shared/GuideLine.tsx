@@ -80,12 +80,6 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const crTop = crRect.top + window.scrollY - containerTop;
     const crH = crRect.height;
 
-    // Footer 第一个链接文本顶边相对 footer 顶边的偏移：
-    //   nav.py-5 (20px) + a.py-3.5 (14px) = 34px。由 Footer.tsx 布局静态推导，
-    //   不测量 DOM（Footer 是 position:fixed，getBoundingClientRect 给出视区相对坐标，
-    //   无法直接转换到容器文档流坐标系）。
-    const FOOTER_TEXT_TOP_OFFSET = 34;
-
     // 丝带水平中心：丝带位于 col-start-1（0~20%vw）的 flex justify-end 内，宽 100px。
     // 所以丝带中心 x = 20%vw - 50px（响应式，任意屏宽均与丝带精确对齐）。
     const ribbonX = vw * 0.2 - 50;
@@ -109,10 +103,11 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
 
     // SVG 覆盖范围：蒙版裁剪盒。
     //   顶边：P1 上方 60px（容纳 stroke 圆角端点，使引导线从丝带下方长出）
-    //   底边：footer 首条链接文本顶边 - 10px安全间隙。采用静态偏移而非 DOM 测量，
-    //        避免对 position:fixed footer 用错误的坐标转换公式。
+    //   底边：鸣谢页底边 = footer 顶边（交界线）。不再额外 +偏移，保证蒙版
+    //        与交界线严格平齐。P6 故意在交界线下方 80px，stroke 主体由蒙版
+    //        硬裁剪，尾部视觉上刚好停在交界线。
     const svgTop = p1.y - 60;
-    const svgBottom = crTop + crH + FOOTER_TEXT_TOP_OFFSET - 10;
+    const svgBottom = crTop + crH;
     const svgHeight = svgBottom - svgTop;
 
     // 所有 Y 坐标相对于 SVG 顶部
@@ -193,10 +188,11 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       const startY = apRect.top + scrollY - vp;
       const endY = crRect.top + scrollY + crRect.height - vp;
 
-      // 计算线性进度；再在 ≥95% 时 snap 到 1.0，吸收任何残余的布局 deadzone
-      // （固定 footer / spacer 的像素误差、平滑滚动库的余量等）。
-      const linear = (scrollY - startY) / (endY - startY);
-      const rawProgress = linear >= 0.95 ? 1 : Math.max(0, linear);
+      // 线性进度 0→1，简单 clamp。不再用 95% snap —— snap 会让最后 5% 的
+      // 线条在跨越阈值那一帧瞬间画完，视觉上表现为"红线突然冲出视口"。
+      // 分母修正（endY 减 vp）后，progress 会在 maxScrollY 前自然达到 1.0，
+      // 不需要 snap 兜底。
+      const rawProgress = Math.max(0, Math.min(1, (scrollY - startY) / (endY - startY)));
 
       // 非可逆：只取历史最大值（Math.max(cachedMaxScroll, currentScroll) 算法）
       cachedMaxProgress.current = Math.max(cachedMaxProgress.current, rawProgress);
