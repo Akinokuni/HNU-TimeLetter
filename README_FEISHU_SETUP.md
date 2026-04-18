@@ -57,7 +57,7 @@ npx tsx src/scripts/test-feishu-correct.ts
 
 ## 详细文档
 
-查看 `docs/飞书配置指南.md` 了解更多详情。
+查看 [docs/guides/飞书CMS配置.md](./docs/guides/飞书CMS配置.md) 了解完整的飞书 + OSS + 后台鉴权环境变量清单与同步流程。
 
 ## 需要帮助？
 

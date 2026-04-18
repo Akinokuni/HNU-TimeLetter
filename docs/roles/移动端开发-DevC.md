@@ -1,7 +1,7 @@
 # 移动端开发指引 (Developer C)
 
 > **负责人**: Developer C
-> **工作目录**: [src/components/mobile/](file:///c:/Documents/Galgame群活动/与她的海大时光笺/web/src/components/mobile/)
+> **工作目录**: [`src/components/mobile/`](../../src/components/mobile/)
 > **核心任务**: 打造“掌心的时光集邮册”，专注于竖屏体验与手势交互。
 
 ## 1. 核心组件开发

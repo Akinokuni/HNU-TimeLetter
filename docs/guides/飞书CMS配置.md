@@ -33,17 +33,25 @@ npx tsx src/scripts/add-oss-fields.ts
 ### 2.1 环境变量配置 (`.env.local`)
 
 ```env
-# 飞书配置
+# 飞书基础配置（首页故事表）
 FEISHU_APP_ID=cli_...
 FEISHU_APP_SECRET=...
 FEISHU_APP_TOKEN=...
 FEISHU_TABLE_ID=...
+FEISHU_VIEW_ID=...
+
+# 创作公示板（可选，未配置则使用内置默认值）
+FEISHU_CREATION_TABLE_ID=tblKNYCf641UMSUe
+FEISHU_CREATION_VIEW_ID=...
 
 # 阿里云 OSS 配置
 ALIYUN_OSS_REGION=oss-cn-guangzhou
 ALIYUN_OSS_BUCKET=your-bucket-name
 ALIYUN_OSS_ACCESS_KEY_ID=your_access_key_id
 ALIYUN_OSS_ACCESS_KEY_SECRET=your_access_key_secret
+
+# 后台管理鉴权（/admin 登录用，未配置时回退为 "admin"）
+ADMIN_PASSWORD=change-me
 ```
 
 ### 2.2 Bucket 设置

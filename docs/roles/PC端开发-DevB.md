@@ -1,7 +1,7 @@
 # PC 端开发指引 (Developer B)
 
 > **负责人**: Developer B
-> **工作目录**: [src/components/desktop/](file:///c:/Documents/Galgame群活动/与她的海大时光笺/web/src/components/desktop/)
+> **工作目录**: [`src/components/desktop/`](../../src/components/desktop/)
 > **核心任务**: 打造“挂在墙上的时光画卷”，专注于大屏视觉表现与鼠标交互。
 
 ## 1. 核心组件开发
@@ -59,7 +59,7 @@
   - ~~上下排版布局~~ (已改为左右收纳布局)
 ## 2. 数据获取
 
-直接从 [content.json](file:///c:/Documents/Galgame群活动/与她的海大时光笺/web/src/data/content.json) 导入数据。
+直接从 [`src/data/content.json`](../../src/data/content.json) 导入数据。
 ```typescript
 import data from '@/data/content.json';
 // 使用 types.ts 中的 LocationPoint 接口
