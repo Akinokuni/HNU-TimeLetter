@@ -177,7 +177,7 @@ function CardComponent({ story, isTop, offset, storyCount, sharedDragX, zIndex, 
 
     return (
         <motion.div
-            className="absolute h-[60vh] max-h-[600px] w-auto bg-white rounded-xl shadow-2xl cursor-pointer border-[8px] border-white flex-shrink-0 will-change-transform"
+            className="absolute h-[60vh] max-h-[600px] w-auto bg-white rounded-md shadow-2xl cursor-pointer border-[8px] border-white flex-shrink-0 will-change-transform"
             style={style}
             drag={isTop ? "x" : false}
             dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
