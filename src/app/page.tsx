@@ -109,7 +109,7 @@ export default function Home() {
               {[0, 1, 2].map((i) => (
                 <motion.span
                   key={i}
-                  className="block w-2.5 h-2.5 rounded-full bg-[#c23643]"
+                  className="block w-2.5 h-2.5 rounded-full bg-primary"
                   animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
                   transition={{
                     duration: 1.2,

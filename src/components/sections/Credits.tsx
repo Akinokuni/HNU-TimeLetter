@@ -72,17 +72,17 @@ export function Credits() {
       >
         {/* 鸣谢文案 */}
         <div className="text-right md:text-right mb-16">
-          <h2 className="font-serif text-ink-strong text-3xl md:text-[40px] leading-tight tracking-[0.02em] mb-8">
+          <h2 className="font-serif mb-8">
             鸣谢
           </h2>
-          <p className="font-sans text-ink text-base md:text-lg leading-[1.8] max-w-lg ml-auto">
+          <p className="font-sans text-reading ml-auto">
             感谢每一位参与共创的群友，是你们的灵感与热情让这个企划从一个简单的想法，生长为一场真实的视觉展览。每一个角色、每一处场景的背后，都有你们的身影。
           </p>
         </div>
 
         {/* 参与贡献名单 */}
         <div className="mt-8">
-          <h3 className="font-serif text-ink-strong text-xl md:text-2xl tracking-wide mb-6 text-right">
+          <h3 className="font-serif mb-6 text-right">
             参与贡献名单
           </h3>
           <div className="space-y-2">

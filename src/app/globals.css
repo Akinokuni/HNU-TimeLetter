@@ -8,6 +8,11 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-body);
   --font-serif: var(--font-display);
+  --text-h1: var(--text-h1);
+  --text-h2: var(--text-h2);
+  --text-h3: var(--text-h3);
+  --text-intro: var(--text-intro);
+  --text-base: var(--text-base);
   --color-paper: var(--paper);
   --color-paper-strong: var(--paper-strong);
   --color-ink: var(--ink);
@@ -58,6 +63,11 @@
 
 :root {
   --radius: 1.25rem;
+  --text-h1: clamp(3rem, 6vw + 1rem, 6.5rem);
+  --text-h2: clamp(2.5rem, 4vw + 0.5rem, 4.5rem);
+  --text-h3: clamp(1.75rem, 2.5vw, 2.5rem);
+  --text-intro: clamp(1.125rem, 1.8vw, 1.75rem);
+  --text-base: clamp(1rem, 0.8vw + 0.5rem, 1.125rem);
   --background: #ece9e4;
   --foreground: #342628;
   --paper: #f6f1eb;
@@ -152,13 +162,39 @@
   html {
     overflow-x: hidden;
     background: var(--background);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-size-adjust: 100%;
+    -webkit-text-size-adjust: 100%;
   }
   body {
     @apply text-foreground overflow-x-hidden;
     min-height: 100vh;
     position: relative;
     isolation: isolate;
-    background: #ece9e4;
+    background: var(--background);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    margin: 0;
+  }
+  h1, h2, h3 {
+    color: var(--ink-strong);
+    line-height: 1.1;
+    font-weight: 800;
+    margin-top: 0;
+    margin-bottom: 0.5em;
+  }
+  h1 {
+    font-size: var(--text-h1);
+    letter-spacing: -0.03em;
+  }
+  h2 {
+    font-size: var(--text-h2);
+    letter-spacing: -0.02em;
+  }
+  h3 {
+    font-size: var(--text-h3);
+    letter-spacing: -0.01em;
   }
   ::selection {
     background: var(--primary-soft);
@@ -210,6 +246,26 @@ body.home-scrollbar-hidden::-webkit-scrollbar {
 }
 
 @layer utilities {
+  /* 介绍正文 — 用于导语、核心卖点、章节引入与摘要型内容 */
+  .text-intro {
+    font-size: var(--text-intro);
+    line-height: 1.5;
+    font-weight: 500;
+    max-width: 800px;
+    margin-bottom: 2rem;
+    color: var(--ink-strong);
+  }
+
+  /* 阅读正文 — 用于详情说明、长篇叙述与连续阅读内容 */
+  .text-reading {
+    font-size: var(--text-base);
+    line-height: 1.8;
+    font-weight: 400;
+    max-width: 65ch;
+    margin-bottom: 1.5rem;
+    color: var(--ink);
+  }
+
   /* 丝带 clip-path 显影动画 — 纯 CSS 过渡，性能优于 JS 驱动 */
   .hero-ribbon-clip {
     clip-path: inset(0% 0% 100% 0%);

@@ -50,10 +50,10 @@ export function AboutUs() {
       >
         {/* 左上：文案 — 左对齐，停留在页面上半部，避开对角引导线 */}
         <div className="absolute left-[5%] top-[12%] max-w-[30%] text-left">
-          <h2 className="font-serif text-ink-strong text-3xl md:text-[40px] leading-tight tracking-[0.02em] mb-8">
+          <h2 className="font-serif mb-8">
             关于我们
           </h2>
-          <p className="font-sans text-ink text-base md:text-lg leading-[1.8]">
+          <p className="font-sans text-reading">
             「海带视研」为本企划的策展与运营团队。主要负责收集与梳理各项提案，协调摄影及后期制作，将抽象的文字构想转化为具体的视觉展品。
           </p>
         </div>
