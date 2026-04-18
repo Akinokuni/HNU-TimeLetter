@@ -204,7 +204,7 @@ export function MobileDetailModal({
                 <Image src={getStoryAvatarUrl(story)} alt={story.characterName} fill className="object-cover" sizes="64px" />
               </motion.div>
               <div className="flex flex-col">
-                <h2 className="text-2xl font-serif text-stone-800 tracking-tight mb-2">{story.characterName}</h2>
+                <h2 className="text-2xl font-serif font-normal text-stone-800 tracking-tight mb-2 mt-0">{story.characterName}</h2>
                 <div className="flex items-center gap-2">
                   <span className="flex items-center gap-1 text-[10px] text-white bg-stone-900 px-2 py-0.5 rounded font-sans uppercase tracking-widest">
                     <MapPin className="w-2 h-2" />

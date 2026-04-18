@@ -380,7 +380,7 @@ export function EnvelopeIntro() {
             }}
           >
             <h1
-              className="font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
+              className="font-serif font-normal m-0 text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
               style={{ textOrientation: 'upright', writingMode: 'vertical-rl' }}
             >
               与她的海大时光笺
@@ -503,7 +503,7 @@ export function EnvelopeIntro() {
                   animate={isOpening ? { opacity: 0 } : { opacity: 1 }}
                   transition={{ duration: 0.4, delay: isOpening ? 2.6 : 0, ease: 'easeIn' }}
                 >
-                  <h2 className="mb-2 font-serif text-xl tracking-[0.16em] text-foreground md:text-2xl">
+                  <h2 className="mb-2 mt-0 font-serif font-normal text-xl tracking-[0.16em] text-foreground md:text-2xl">
                     时光笺
                   </h2>
                   <p className="font-serif text-[11px] uppercase tracking-[0.24em] text-muted-foreground md:text-xs">

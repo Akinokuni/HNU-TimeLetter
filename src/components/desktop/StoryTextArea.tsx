@@ -59,7 +59,7 @@ export function StoryTextArea({ story, isVisible }: StoryTextAreaProps) {
           {/* 故事正文内容区 */}
           <div className="pl-12">
             {/* 角色名 (大标题) */}
-            <h3 className="text-2xl font-serif text-gray-800 mb-4 tracking-wider">
+            <h3 className="text-2xl font-serif font-normal text-gray-800 mb-4 mt-0 tracking-wider">
               {story.characterName}
             </h3>
 

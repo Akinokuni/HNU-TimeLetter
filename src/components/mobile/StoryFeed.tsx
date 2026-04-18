@@ -53,7 +53,7 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
             {story.locationName}
           </span>
         </div>
-        <h3 className="text-[13px] font-serif text-stone-800 line-clamp-1 leading-tight">
+        <h3 className="text-[13px] font-serif font-normal m-0 text-stone-800 line-clamp-1 leading-tight">
           {story.characterName}
         </h3>
       </div>

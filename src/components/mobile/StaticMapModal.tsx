@@ -41,7 +41,7 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
             {/* Modal Header */}
             <div className="px-6 py-5 border-b border-stone-100 flex items-center justify-between bg-white">
               <div>
-                <h2 className="text-lg font-serif text-stone-800 tracking-wider">校园时光地图</h2>
+                <h2 className="text-lg font-serif font-normal m-0 text-stone-800 tracking-wider">校园时光地图</h2>
                 <p className="text-[9px] text-stone-400 uppercase tracking-widest">Static Reference Map</p>
               </div>
               <Button 
