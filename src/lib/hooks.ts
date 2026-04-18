@@ -50,6 +50,13 @@ export function fitContainedSize(width: number, height: number, aspect: number) 
 interface UseContainedMapSizeOptions {
   onContainerResize?: (size: { width: number; height: number }) => void;
   shouldMeasure?: () => boolean;
+  /**
+   * 容器每侧预留的安全内边距（px）。
+   * 用于为包裹层的 border / outline 等「绘制在 width/height 之外」的装饰
+   * 预留空间，保证 border-box 不会越过外层 overflow-hidden 的裁剪边界。
+   * 参与计算的可用容器尺寸为 (width - 2*insetPx) × (height - 2*insetPx)。
+   */
+  insetPx?: number;
 }
 
 export function useContainedMapSize(
@@ -58,7 +65,7 @@ export function useContainedMapSize(
   options: UseContainedMapSizeOptions = {}
 ) {
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
-  const { onContainerResize, shouldMeasure } = options;
+  const { onContainerResize, shouldMeasure, insetPx = 0 } = options;
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -73,7 +80,13 @@ export function useContainedMapSize(
       if (!mapAspect) return;
       if (shouldMeasure && !shouldMeasure()) return;
 
-      setMapSize(fitContainedSize(width, height, mapAspect));
+      const availW = Math.max(0, width - insetPx * 2);
+      const availH = Math.max(0, height - insetPx * 2);
+      if (!availW || !availH) {
+        setMapSize({ width: 0, height: 0 });
+        return;
+      }
+      setMapSize(fitContainedSize(availW, availH, mapAspect));
     };
 
     updateSize();
@@ -81,7 +94,7 @@ export function useContainedMapSize(
     observer.observe(container);
 
     return () => observer.disconnect();
-  }, [containerRef, mapAspect, onContainerResize, shouldMeasure]);
+  }, [containerRef, mapAspect, onContainerResize, shouldMeasure, insetPx]);
 
   return mapSize;
 }

@@ -91,6 +91,9 @@ export function InteractiveMap() {
   const mapSize = useContainedMapSize(mapContainerRef, mapAspect, {
     onContainerResize: handleContainerResize,
     shouldMeasure: shouldMeasureMap,
+    // 展示框 border-[6px] 使用 box-content 绘制在 width/height 之外，
+    // 这里为四周各预留 6px，避免 border 溢出到外层 overflow-hidden 的裁剪边界。
+    insetPx: 6,
   });
 
   // ─── 事件处理器 ────────────────────────────────────────────────────────────
@@ -226,7 +229,20 @@ export function InteractiveMap() {
             }}
           >
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative" style={{ width: mapSize.width, height: mapSize.height }}>
+              {/*
+               * 地图展示框：围绕可见地图内容的白色实体边框。
+               *   - 宽度 6px、纯白 (#FFFFFF)；搭配 object-contain 的 SVG 填充，
+               *     边框紧贴地图实际可见矩形，不随容器留白扩张。
+               *   - `box-content` 关键：保持 width/height 对应 mapSize.*
+               *     的内容区，边框绘制在其外侧，避免内容区宽高比偏移导致
+               *     `object-contain` 产生 letterbox、进而使 Pin 百分比坐标
+               *     相对底图发生偏移。
+               *   - 叠加柔和投影以在米色底页上与地图本体分离。
+               */}
+              <div
+                className="relative box-content border-[6px] border-white shadow-[0_4px_20px_rgba(0,0,0,0.08)]"
+                style={{ width: mapSize.width, height: mapSize.height }}
+              >
 
                 {/* 地图底图 */}
                 <Image

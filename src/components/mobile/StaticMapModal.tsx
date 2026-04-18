@@ -21,7 +21,8 @@ interface StaticMapModalProps {
 export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [mapAspect, setMapAspect] = useState<number | null>(null);
-  const mapSize = useContainedMapSize(mapContainerRef, mapAspect);
+  // 展示框 border-4 (4px) + box-content 绘制在 width/height 之外，预留 4px 安全内边距。
+  const mapSize = useContainedMapSize(mapContainerRef, mapAspect, { insetPx: 4 });
 
   return (
     <AnimatePresence>
@@ -59,7 +60,13 @@ export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
               <div className="relative min-w-[600px] h-full flex items-center justify-center p-4">
                 <div className="relative w-full h-full" ref={mapContainerRef}>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative" style={{ width: mapSize.width, height: mapSize.height }}>
+                    {/* 地图展示框：4px 纯白边框 + 轻微投影，与桌面端保持一致。
+                        box-content：边框绘制在 width/height 之外，保持内容区
+                        宽高比与 mapSize 一致，防止 Pin 百分比坐标相对底图偏移。 */}
+                    <div
+                      className="relative box-content border-4 border-white shadow-[0_2px_12px_rgba(0,0,0,0.08)]"
+                      style={{ width: mapSize.width, height: mapSize.height }}
+                    >
                       <Image
                         src="/images/map.svg"
                         alt="HNU Map"
