@@ -13,14 +13,18 @@ import { Footer } from '@/components/sections/Footer';
 import { CustomScrollbar } from '@/components/shared/CustomScrollbar';
 
 export default function Home() {
-  const { isEnvelopeOpened, isTransitioning, setTransitioning } = useAppStore();
+  const { isEnvelopeOpened, isTransitioning, setTransitioning, isIntroReady } =
+    useAppStore();
   const isMobile = useIsMobile();
   const [mounted, setMounted] = useState(false);
   const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 虚拟滚动动量：仅在桌面端 + 信封未打开（可滚动浏览关于页面）时启用
-  const lenis = useVirtualScroll(mounted && !isEnvelopeOpened && !isMobile);
-  const scrollbarEnabled = mounted && !isEnvelopeOpened && !isMobile;
+  // 开屏入场动画期间禁止下滑：仅在入场动画播完后启用 Lenis 与自定义滑块
+  const lenis = useVirtualScroll(
+    mounted && !isEnvelopeOpened && !isMobile && isIntroReady,
+  );
+  const scrollbarEnabled =
+    mounted && !isEnvelopeOpened && !isMobile && isIntroReady;
 
   // 避免 SSR Hydration 问题
   useEffect(() => {
@@ -35,6 +39,19 @@ export default function Home() {
       document.body.classList.remove('home-scrollbar-hidden');
     };
   }, []);
+
+  // 开屏动画未播完 + 信封未打开时锁定纵向滚动
+  useEffect(() => {
+    const locked = mounted && !isEnvelopeOpened && !isIntroReady;
+    if (locked) {
+      document.documentElement.classList.add('intro-scroll-locked');
+      document.body.classList.add('intro-scroll-locked');
+      return () => {
+        document.documentElement.classList.remove('intro-scroll-locked');
+        document.body.classList.remove('intro-scroll-locked');
+      };
+    }
+  }, [mounted, isEnvelopeOpened, isIntroReady]);
 
   // 过渡遮罩自动消退：当地图内容渲染完成后延时淡出
   useEffect(() => {

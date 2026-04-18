@@ -16,14 +16,14 @@ export default async function ContentPage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">内容数据查看</h2>
+      <h2 className="mb-0 text-2xl font-bold">内容数据查看</h2>
       <p className="text-gray-500">共 {data.locations.length} 个地点</p>
       
       <div className="grid gap-6">
         {data.locations.map((loc) => (
           <div key={loc.id} className="bg-white p-6 rounded shadow">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
-              <h3 className="text-xl font-semibold">{loc.name} <span className="text-sm text-gray-400">({loc.id})</span></h3>
+              <h3 className="mb-0 text-xl font-semibold">{loc.name} <span className="text-sm text-gray-400">({loc.id})</span></h3>
               <span className="text-sm bg-gray-100 px-2 py-1 rounded">坐标: {loc.x}%, {loc.y}%</span>
             </div>
             

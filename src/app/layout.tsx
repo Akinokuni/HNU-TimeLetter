@@ -3,7 +3,7 @@ import localFont from "next/font/local";
 import "./globals.css";
 
 const displayFont = localFont({
-  src: "../../public/Alibaba-PuHuiTi-Medium.otf",
+  src: "../../public/ChillDINGothic_SemiBold.otf",
   variable: "--font-display",
   display: "swap",
   fallback: ["PingFang SC", "Microsoft YaHei", "sans-serif"],

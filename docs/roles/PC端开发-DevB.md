@@ -13,7 +13,7 @@
 - **布局实现**:
   - 容器: Flex/Grid 居中，高度强制 `h-screen`，宽度 `w-full`。
   - **动态容器计算**: 为了避免 `object-fit: contain` 在非标准比例窗口下产生的留白导致坐标偏移，需要使用 `ResizeObserver` 计算**实际渲染地图**的尺寸。
-  - 图片: 使用 Next.js `<Image>`，监听 `onLoadingComplete` 获取实际宽高比，不再硬编码比例。
+  - 图片: 使用 Next.js `<Image>`，监听 `onLoadingComplete` 获取实际宽高比，按运行时测量值驱动布局，不硬编码比例。
   - 坐标系: 建立一个与“实际渲染地图”等大的 `relative` 内部容器，Pin 点基于此容器 `absolute` 定位。
 
 - **坐标点系统 (Pin System)**:
@@ -54,9 +54,9 @@
   2. 在 `onExitComplete` 回调中启动地图展开。
   3. 待地图展开完成后重置状态。
 
-  ### 1.4 废弃逻辑
-  - ~~scrollIntoView 垂直滚动~~ (已改为水平卷起)
-  - ~~上下排版布局~~ (已改为左右收纳布局)
+  ### 1.4 排除实现方式
+  - 垂直 `scrollIntoView` 滚动：不用于地图↔故事的转场，统一由水平卷起状态控制。
+  - 上下布局的地图 + 故事组合：禁用，统一采用左右收纳布局。
 ## 2. 数据获取
 
 直接从 [`src/data/content.json`](../../src/data/content.json) 导入数据。

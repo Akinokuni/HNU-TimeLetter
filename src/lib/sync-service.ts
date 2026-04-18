@@ -681,7 +681,7 @@ const dataTransformer = {
     for (let i = 0; i < feishuRecords.length; i += BATCH_SIZE) {
       const batch = feishuRecords.slice(i, i + BATCH_SIZE);
 
-      // 同样改为 allSettled：单条创作记录失败（飞书 502 / 附件挂掉）不应终止整次同步。
+      // 使用 allSettled 聚合批内结果：单条创作记录失败（飞书 502 / 附件挂掉）不应终止整次同步。
       const processedBatch = await Promise.allSettled(
         batch.map(async (record) => {
           const fields = record.fields;

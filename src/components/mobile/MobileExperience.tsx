@@ -82,7 +82,7 @@ export function MobileExperience() {
       {/* 1. Header */}
       <header className="px-6 py-5 flex items-center justify-between border-b border-stone-100 bg-white/80 backdrop-blur-md sticky top-0 z-20">
         <div>
-          <h1 className="text-xl font-serif text-stone-800 tracking-wider">与她的海大时光笺</h1>
+          <h1 className="mb-0 text-xl font-serif text-stone-800 tracking-wider">与她的海大时光笺</h1>
           <p className="text-[10px] text-stone-400 font-sans uppercase tracking-[0.2em] mt-0.5">Hainan University</p>
         </div>
       </header>

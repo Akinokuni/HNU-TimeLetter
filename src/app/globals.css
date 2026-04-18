@@ -99,6 +99,13 @@
   --sidebar-ring: var(--ring);
   --paper-shadow: 0 24px 60px rgba(69, 39, 40, 0.12);
   --paper-shadow-hover: 0 32px 80px rgba(69, 39, 40, 0.16);
+
+  /* 响应式字号量 —— 视觉规范 §2.2.1 SSOT */
+  --text-h1: clamp(2.5rem, 5vw + 1rem, 5rem);
+  --text-h2: clamp(2rem, 3.5vw + 0.5rem, 3.5rem);
+  --text-h3: clamp(1.5rem, 2.5vw, 2.5rem);
+  --text-intro: clamp(1.125rem, 1.8vw, 1.75rem);
+  --text-base: clamp(1rem, 0.8vw + 0.5rem, 1.125rem);
 }
 
 .dark {
@@ -152,6 +159,10 @@
   html {
     overflow-x: hidden;
     background: var(--background);
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
   body {
     @apply text-foreground overflow-x-hidden;
@@ -159,6 +170,27 @@
     position: relative;
     isolation: isolate;
     background: #ece9e4;
+    font-size: var(--text-base);
+    line-height: 1.8;
+    margin: 0;
+  }
+  h1,
+  h2,
+  h3 {
+    font-weight: 400;
+    line-height: 1.4;
+    letter-spacing: 0.08em;
+    margin-top: 0;
+    margin-bottom: 0.8em;
+  }
+  h1 {
+    font-size: var(--text-h1);
+  }
+  h2 {
+    font-size: var(--text-h2);
+  }
+  h3 {
+    font-size: var(--text-h3);
   }
   ::selection {
     background: var(--primary-soft);
@@ -207,6 +239,39 @@ body.home-scrollbar-hidden {
 html.home-scrollbar-hidden::-webkit-scrollbar,
 body.home-scrollbar-hidden::-webkit-scrollbar {
   display: none !important;
+}
+
+/* 开屏入场动画期间禁止下滑 —— 交互设计 §1.1 */
+html.intro-scroll-locked,
+body.intro-scroll-locked {
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  height: 100vh;
+}
+
+@layer components {
+  /* 正文排印 —— 视觉规范 §2.2.4
+   *
+   * 放在 components 层而非 utilities 层：components 层在级联顺序上
+   * 优先级低于 utilities 层，Tailwind 的 `mb-0` / `max-w-*` 等工具类
+   * 可覆盖此处的默认间距与最大宽度，使单点调整无需引入 `!important`。 */
+  .text-intro {
+    font-size: var(--text-intro);
+    line-height: 1.7;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+    max-width: 800px;
+    margin-bottom: 3rem;
+  }
+  .text-reading {
+    font-size: var(--text-base);
+    line-height: 2;
+    font-weight: 300;
+    letter-spacing: 0.03em;
+    max-width: 65ch;
+    margin-bottom: 2rem;
+  }
 }
 
 @layer utilities {

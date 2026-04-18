@@ -38,8 +38,8 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  *  - 配合 `overflow: hidden`，任何超出底边的描边（包括 P6 圆角端点的外沿）都会被
  *    SVG 视口硬裁剪。
  *  - 因此 P6 故意放在 `crBottom + 80`（超出蒙版底边 56px），让 stroke 主体而非
- *    仅仅圆角帽填满蒙版底边——这样不管 P5→P6 的角度，尾部视觉均硬齐
- *    到 `crBottom + 24`（红带内 24px），不再出现"有地方没碰到"。
+ *    仅仅圆角帽填满蒙版底边——这样无论 P5→P6 的角度如何，尾部视觉都硬齐
+ *    到 `crBottom + 24`（红带内 24px），消除「有地方没碰到」的缝隙。
  */
 
 interface GuideLineProps {
@@ -114,13 +114,13 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     //     既然 SVG 的 `overflow: hidden` 硬裁剪，超过蒙版的部分一律不渲染；
     //     把线条终点放到蒙版外，能保证 stroke 主体（100px 宽）填满整个蒙版
     //     底边，不管 P5→P6 的角度，尾部视觉上都确实抵达页脚红带。
-    //     之前 0.97*crH 是在 credits 内部结束，导致线未期同蒙版底边齐平、视觉上
-    //     "没碰到页脚"。
+    //     若终点落在 credits 内部（例如 0.97*crH），线会在蒙版底边之上结束，
+    //     视觉上形成「没碰到页脚」的缝隙。
     const p6 = { x: vw * 0.32, y: crTop + crH + 80 };
 
     // SVG 覆盖范围：蒙版裁剪盒。
     //   顶边：P1 上方 60px（容纳 stroke 圆角端点，使引导线从丝带下方长出）
-    //   底边：鸣谢页底边 = footer 顶边（交界线）。不再额外 +偏移，保证蒙版
+    //   底边：鸣谢页底边 = footer 顶边（交界线）；不额外附加偏移，保证蒙版
     //        与交界线严格平齐。P6 故意在交界线下方 80px，stroke 主体由蒙版
     //        硬裁剪，尾部视觉上刚好停在交界线。
     const svgTop = p1.y - 60;
@@ -212,20 +212,20 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       const containerTop = containerTopRef.current;
       const svgBottom = svgBottomRef.current;
 
-      // y-aware 进度映射：让画出的线尾跟随"视口某一 y 基准线在路径上的 y 位置"
+      // y-aware 进度映射：让画出的线尾跟随「视口某一 y 基准线在路径上的 y 位置」
       //
-      // 之前的线性映射（progress = (scrollY - startY) / (endY - startY) → drawn = progress * totalLength）
-      // 在路径几何不均匀时会出现"线头走在视口下面"：
+      // 简单的线性映射（progress = (scrollY - startY) / (endY - startY) → drawn = progress * totalLength）
+      // 在路径几何不均匀时会出现「线头走在视口下面」：
       // ─ P1→P4 段（小 y 范围 ~13%）占了 ~28% 路径长度 → 密集区
       // ─ P4→P5 段（大 y 跨越 ~73%）占了 ~58% 路径长度 → 稀疏区
       // 线性映射在中段滚动时会把 drawn-end 推到远比视口底低的 y。
       //
-      // 改用 refY = scrollY + vp*anchor（文档坐标）后减去 containerTop 转到容器坐标系，
-      // 再在折线上查找这个 y 对应的长度。drawn 终点精确落在 refY 对应的路径点上。
+      // 当前采用 refY = scrollY + vp*anchor（文档坐标）后减去 containerTop 转到
+      // 容器坐标系，再在折线上按 y 查长度。drawn 终点精确落在 refY 对应的路径点上。
       //
       // 三段 anchor 策略（用 max-merge 让它们平滑衔接）：
       // ─ 启动（scrollY <= STARTUP_END）：跟视口底（anchor=1.0），保证微量下滑时
-      //   线立即从丝带下方伸出。超过 STARTUP_END 后冻结这个分量（不再推进），
+      //   线立即从丝带下方伸出。超过 STARTUP_END 后冻结这个分量（停止推进），
       //   仅靠 mid 段驱动；用户继续滚动时尾部的视觉 y 从视口底自然上升到 60%，
       //   无跳跃（因为 drawn 在 cachedMax 下保持不变，滚动只改变相对视口 y）。
       // ─ 中段（STARTUP_END < scrollY < TRANSITION_START）：anchor=0.6 锁在视口 60%。
@@ -243,7 +243,7 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
       const refY_mid = scrollY + vp * midAnchor - containerTop;
 
       // 启动阶段用视口底 anchor=1.0；超过 STARTUP_END 后 scrollY 冻结在 STARTUP_END，
-      // 保证 refY_startup 不再增长，交棒给 refY_mid。
+      // 令 refY_startup 停止增长，交棒给 refY_mid。
       const startupScrollY = Math.min(scrollY, STARTUP_END);
       const refY_startup = startupScrollY + vp - containerTop;
 

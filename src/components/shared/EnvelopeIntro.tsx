@@ -199,9 +199,10 @@ function calcLetterCenterOffset(): { x: number; y: number } {
  * 主组件
  * ──────────────────────────────────────────── */
 export function EnvelopeIntro() {
-  const { setEnvelopeOpened, setTransitioning } = useAppStore();
+  const { setEnvelopeOpened, setTransitioning, setIntroReady } = useAppStore();
   const [phase, setPhase] = useState<Phase>('loading');
   const [ribbonRevealed, setRibbonRevealed] = useState(false);
+  const [titleVisible, setTitleVisible] = useState(false);
   const [isShattered, setIsShattered] = useState(false);
   const phaseRef = useRef<Phase>('loading');
 
@@ -219,23 +220,31 @@ export function EnvelopeIntro() {
   useEffect(() => {
     let cancelled = false;
     let frame2: number | undefined;
+    let titleTimer: ReturnType<typeof setTimeout> | undefined;
 
     const runEntry = async () => {
       if (cancelled) return;
       setPhase('entering');
       setRibbonRevealed(true);
 
+      // 标题在丝带 clip-path 动画（1400ms）结束后淡入
+      titleTimer = setTimeout(() => {
+        if (!cancelled) setTitleVisible(true);
+      }, 1400);
+
       if (prefersReducedMotion) {
         envelopeControls.set({ y: 0, opacity: 1, rotateX: 0, rotateZ: 0 });
-        if (!cancelled) setPhase('idle');
+        if (!cancelled) {
+          setTitleVisible(true);
+          setPhase('idle');
+          setIntroReady(true);
+        }
         return;
       }
 
-      // 丝带先出现（clip-path CSS 动画 1.4s），信封延迟 1.5s 后飘落
-      await sleep(1500);
       if (cancelled || phaseRef.current === 'opening') return;
 
-      // 信封入场：使用 spring 物理弹簧实现丝滑飘落
+      // 信封与丝带同时以 Spring 物理弹簧自上方飘落
       // 从屏幕上方 120% 处下落，带左右摇摆的飘落感
       await envelopeControls.start({
         y: 0,
@@ -255,6 +264,7 @@ export function EnvelopeIntro() {
       // phaseRef.current 可在 await 期间被异步更新为 'opening'
       if (cancelled || (phaseRef as React.RefObject<Phase>).current === 'opening') return;
       setPhase('idle');
+      setIntroReady(true);
 
       // 闲置呼吸浮动 — 赋予信封生命感
       envelopeControls.start({
@@ -279,8 +289,9 @@ export function EnvelopeIntro() {
       cancelled = true;
       cancelAnimationFrame(frame1);
       if (frame2 !== undefined) cancelAnimationFrame(frame2);
+      if (titleTimer !== undefined) clearTimeout(titleTimer);
     };
-  }, [envelopeControls, prefersReducedMotion]);
+  }, [envelopeControls, prefersReducedMotion, setIntroReady]);
 
   /* ─── 开信交互 ─── */
   const handleOpen = useCallback(async () => {
@@ -369,18 +380,17 @@ export function EnvelopeIntro() {
             animate={
               isOpening
                 ? { opacity: 0, y: -40, filter: 'blur(8px)' }
-                : isIdle
+                : titleVisible
                   ? { opacity: 1, y: 0, filter: 'blur(0px)' }
                   : { opacity: 0, y: 0, filter: 'blur(0px)' }
             }
             transition={{
               duration: isOpening ? 0.6 : 0.8,
-              delay: isIdle && !isOpening ? 0.15 : 0,
               ease: [0.85, 0, 0.15, 1],
             }}
           >
             <h1
-              className="font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
+              className="mb-0 font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
               style={{ textOrientation: 'upright', writingMode: 'vertical-rl' }}
             >
               与她的海大时光笺
@@ -433,10 +443,11 @@ export function EnvelopeIntro() {
                 />
 
                 {/* 顶部封盖 — 3D 翻转
-                 *  注意：不能靠父级 variants 传递（祖父 motion.div 使用 shellDropControls
-                 *  的独立 animate 打断了变体传播链）。改为直接基于 isOpening 状态驱动 animate。
-                 *  zIndex 由 Framer Motion 的 animate + transition.delay 调度，在翻转至 90°
-                 *  附近（0.15s）瞬时从 30 切到 0，避免前半程就被错误地放到信纸之后。
+                 *  祖父 motion.div 使用 shellDropControls 的独立 animate 会打断
+                 *  variants 传播链，因此这里直接依据 isOpening 状态驱动 animate。
+                 *  zIndex 由 Framer Motion 的 animate + transition.delay 调度，
+                 *  在翻转至 90° 附近（0.15s）瞬时从 30 切到 0，避免前半程就被错
+                 *  误地放到信纸之后。
                  *  translateZ(-2) 避免 3D 空间内与信纸 z-fighting。
                  */}
                 <motion.div
@@ -454,7 +465,7 @@ export function EnvelopeIntro() {
                   transition={{
                     rotateX: { duration: 0.6, ease: 'easeInOut' },
                     translateZ: { delay: 0.15, duration: 0.1 },
-                    // 翻转到 ~90° 之前就切换 zIndex，使翻盖立即落到信纸（z-10）之后
+                    // 在翻转至 ~90° 时同步切换 zIndex，使翻盖在越过信纸（z-10）后立即回落
                     zIndex: { delay: 0.15, duration: 0, type: 'tween' },
                   }}
                 >

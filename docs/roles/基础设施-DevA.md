@@ -73,7 +73,7 @@ src/
   - 已从 `EnvelopeIntro` 中剥离为独立层，避免 `AnimatePresence exit` 把下滚页面群一起带走。
 - **`Footer`** (`src/components/sections/Footer.tsx`)：固定视口底部的揭露式页脚，占位高度由 `FooterSpacer` 动态测量。
 - **`CustomScrollbar`** (`src/components/shared/CustomScrollbar.tsx`)：与 Lenis 同步的 DOM 滑块，见 [交互设计 §4.0](../design/交互设计.md#40-全局滚动系统)。
-- **响应式分流**：在 `src/app/page.tsx` 内根据 `useIsMobile()` 条件渲染 `InteractiveMap`（桌面）或 `MobileExperience`（移动），不再抽象为独立 `ResponsiveEntry` 组件。
+- **响应式分流**：在 `src/app/page.tsx` 内根据 `useIsMobile()` 条件渲染 `InteractiveMap`（桌面）或 `MobileExperience`（移动），不封装为独立 `ResponsiveEntry` 组件。
 
 ## 2. 数据管道 (Data Pipeline)
 

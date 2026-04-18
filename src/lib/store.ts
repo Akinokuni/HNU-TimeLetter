@@ -8,6 +8,11 @@ interface AppState {
   // 信纸→地图的过渡加载状态（防止过渡期间页脚露出）
   isTransitioning: boolean;
   setTransitioning: (transitioning: boolean) => void;
+
+  // 开屏入场动画是否已播完
+  // 为 false 时锁定页面纵向滚动，避免用户在丝带显影/信封飘落期间下滑
+  isIntroReady: boolean;
+  setIntroReady: (ready: boolean) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -16,4 +21,7 @@ export const useAppStore = create<AppState>((set) => ({
 
   isTransitioning: false,
   setTransitioning: (transitioning) => set({ isTransitioning: transitioning }),
+
+  isIntroReady: false,
+  setIntroReady: (ready) => set({ isIntroReady: ready }),
 }));

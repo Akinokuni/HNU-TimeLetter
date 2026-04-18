@@ -9,6 +9,17 @@ import { motion, useInView } from 'framer-motion';
  * 全屏页面，整体偏右对齐。
  * - 上部：鸣谢文案
  * - 下部：参与贡献名单 — 三排横向无限滚动昵称展示区
+ *
+ * 引导线几何（与 GuideLine.tsx 保持一致）：
+ *   - P4→P5 段在 Credits 顶部穿入，x 从 ~30%·vw 下滑至 P5(-2.19%·vw, 65.40%·crH)
+ *   - P5→P6 段向右下延伸至 P6(32%·vw, crBottom + 80)
+ *   - 本页引导线始终落在 x < ~32%·vw 的左侧区域
+ *
+ * 避让策略：
+ *   - 正文整体 `ml-auto` + `pr-*` 右锚定，段落 `.text-intro` 800px 限宽使
+ *     行左端保持在 ~39%·vw 附近，天然位于引导线右侧。
+ *   - 顶部鸣谢文案块内放置 `float: left` 的 shape-outside 三角占位，进一步
+ *     沿 P4→P5 方向退让首段行首，避免在窄视口下擦边。
  */
 
 // 占位昵称列表（待填充真实数据）
@@ -70,19 +81,33 @@ export function Credits() {
         animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 60 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
       >
-        {/* 鸣谢文案 */}
-        <div className="text-right md:text-right mb-16">
-          <h2 className="font-serif text-ink-strong text-3xl md:text-[40px] leading-tight tracking-[0.02em] mb-8">
+        {/* 鸣谢文案 —— 使用全局 h2 基准字号与大正文 */}
+        <div className="text-right mb-16">
+          {/*
+           * shape-outside 左侧避让：引导线 P4→P5 从 Credits 顶部
+           * x~30%·vw 斜向下穿入，本占位块推开首段首行的左端，使行文沿
+           * 对角展开；polygon 斜边方向与引导线一致。
+           */}
+          <div
+            aria-hidden
+            className="hidden md:block float-left"
+            style={{
+              width: '18%',
+              height: '14vh',
+              shapeOutside: 'polygon(0 0, 100% 0, 0 100%)',
+            }}
+          />
+          <h2 className="font-serif text-ink-strong tracking-[0.02em]">
             鸣谢
           </h2>
-          <p className="font-sans text-ink text-base md:text-lg leading-[1.8] max-w-lg ml-auto">
+          <p className="text-intro font-sans text-ink ml-auto mb-0">
             感谢每一位参与共创的群友，是你们的灵感与热情让这个企划从一个简单的想法，生长为一场真实的视觉展览。每一个角色、每一处场景的背后，都有你们的身影。
           </p>
         </div>
 
         {/* 参与贡献名单 */}
         <div className="mt-8">
-          <h3 className="font-serif text-ink-strong text-xl md:text-2xl tracking-wide mb-6 text-right">
+          <h3 className="font-serif text-ink-strong tracking-wide text-right mb-6">
             参与贡献名单
           </h3>
           <div className="space-y-2">
