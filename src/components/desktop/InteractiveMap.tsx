@@ -91,6 +91,9 @@ export function InteractiveMap() {
   const mapSize = useContainedMapSize(mapContainerRef, mapAspect, {
     onContainerResize: handleContainerResize,
     shouldMeasure: shouldMeasureMap,
+    // 展示框 border-[6px] 使用 box-content 绘制在 width/height 之外，
+    // 这里为四周各预留 6px，避免 border 溢出到外层 overflow-hidden 的裁剪边界。
+    insetPx: 6,
   });
 
   // ─── 事件处理器 ────────────────────────────────────────────────────────────

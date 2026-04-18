@@ -21,7 +21,8 @@ interface StaticMapModalProps {
 export function StaticMapModal({ isOpen, onClose }: StaticMapModalProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [mapAspect, setMapAspect] = useState<number | null>(null);
-  const mapSize = useContainedMapSize(mapContainerRef, mapAspect);
+  // 展示框 border-4 (4px) + box-content 绘制在 width/height 之外，预留 4px 安全内边距。
+  const mapSize = useContainedMapSize(mapContainerRef, mapAspect, { insetPx: 4 });
 
   return (
     <AnimatePresence>
