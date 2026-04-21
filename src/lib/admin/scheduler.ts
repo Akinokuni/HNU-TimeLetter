@@ -1,13 +1,14 @@
 import schedule from 'node-schedule';
-import { getAdminConfig, updateAdminConfig } from './config';
-import { syncFeishuData } from '../sync-service';
+import { getSyncConfig } from '@/lib/sync/config';
+import { runSyncJob } from '@/lib/sync/orchestrator';
+import { SyncConflictError } from '@/lib/sync/lock';
 
 let syncJob: schedule.Job | null = null;
 
 export function initScheduler() {
-  const config = getAdminConfig();
-  if (config.sync.enabled && config.sync.cron) {
-    startSyncJob(config.sync.cron);
+  const config = getSyncConfig();
+  if (config.enabled && config.cron) {
+    startSyncJob(config.cron);
   }
 }
 
@@ -18,8 +19,25 @@ export function startSyncJob(cron: string) {
 
   console.log(`[Scheduler] Starting sync job with cron: ${cron}`);
   syncJob = schedule.scheduleJob(cron, async () => {
+    const config = getSyncConfig();
     console.log('[Scheduler] Triggering scheduled sync...');
-    await runSyncTask();
+
+    try {
+      await runSyncJob({
+        kind: config.defaultJobKind,
+        tables: config.defaultTables,
+        triggeredBy: 'scheduler',
+      });
+    } catch (error) {
+      if (error instanceof SyncConflictError) {
+        console.warn(
+          `[Scheduler] Sync skipped because job ${error.currentJobId ?? 'unknown'} is already running`,
+        );
+        return;
+      }
+
+      console.error('[Scheduler] Scheduled sync failed', error);
+    }
   });
 }
 
@@ -32,23 +50,10 @@ export function stopSyncJob() {
 }
 
 export async function runSyncTask() {
-  updateAdminConfig({
-    sync: {
-      enabled: getAdminConfig().sync.enabled,
-      cron: getAdminConfig().sync.cron,
-      status: 'running',
-    },
-  });
-
-  const result = await syncFeishuData();
-
-  updateAdminConfig({
-    sync: {
-      enabled: getAdminConfig().sync.enabled,
-      cron: getAdminConfig().sync.cron,
-      lastRun: new Date().toISOString(),
-      status: result.success ? 'success' : 'failed',
-      lastMessage: result.message,
-    },
+  const config = getSyncConfig();
+  return runSyncJob({
+    kind: config.defaultJobKind,
+    tables: config.defaultTables,
+    triggeredBy: 'scheduler',
   });
 }

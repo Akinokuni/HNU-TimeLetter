@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npm run sync && next build",
+    "build": "next build",
+    "build:with-sync": "npm run sync && npm run build",
+    "publish": "npm run sync && npm run build",
     "start": "next start",
     "lint": "eslint",
     "sync": "tsx src/scripts/sync-feishu.ts",

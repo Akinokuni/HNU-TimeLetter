@@ -169,14 +169,6 @@ function calcLetterCenterOffset(): { x: number; y: number } {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // 信封在不同断点的宽度
-  let envelopeWidth = 595;
-  if (vw < 640) envelopeWidth = 280;
-  else if (vw < 768) envelopeWidth = 360;
-  else if (vw < 1024) envelopeWidth = 480;
-
-  const envelopeHeight = envelopeWidth * (397 / 595);
-
   // 信封在五列网格中的位置：col-start-3 col-span-3，mx-auto
   // 信封中心大约在视口的 (3/5 + 3/10) * vw = 0.6 * vw 处（第3-5列中心）
   // 更精确：网格5列等分，第3列起始 = 2/5 * vw，跨3列中心 = (2/5 + 3/10) * vw = 7/10 * vw

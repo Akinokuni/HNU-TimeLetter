@@ -1,13 +1,17 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-
-const PASSWORD = process.env.ADMIN_PASSWORD || 'admin';
-const COOKIE_NAME = 'admin_auth';
+import {
+  createSessionToken,
+  getAdminCookieName,
+  getSessionMaxAgeSeconds,
+  isValidAdminPassword,
+  verifySessionToken,
+} from './session';
 
 export async function checkAuth() {
   const cookieStore = await cookies();
-  const authCookie = cookieStore.get(COOKIE_NAME);
-  return authCookie?.value === 'authenticated';
+  const authCookie = cookieStore.get(getAdminCookieName());
+  return verifySessionToken(authCookie?.value);
 }
 
 export async function requireAuth() {
@@ -18,12 +22,13 @@ export async function requireAuth() {
 }
 
 export async function login(password: string) {
-  if (password === PASSWORD) {
+  if (isValidAdminPassword(password)) {
     const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, 'authenticated', {
+    cookieStore.set(getAdminCookieName(), await createSessionToken(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: getSessionMaxAgeSeconds(),
+      sameSite: 'lax',
       path: '/',
     });
     return true;
@@ -33,5 +38,5 @@ export async function login(password: string) {
 
 export async function logout() {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(getAdminCookieName());
 }

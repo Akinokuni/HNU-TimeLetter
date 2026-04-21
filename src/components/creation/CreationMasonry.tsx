@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import type { CreationCard } from '@/lib/types';
 import CreationNoteCard from './CreationNoteCard';
 

@@ -1,7 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
-
-const CONFIG_PATH = path.resolve(process.cwd(), 'src/config/admin.json');
+import { getJob, getRuntimeSummary } from '@/lib/sync/job-store';
+import { getSyncConfig, updateSyncConfig } from '@/lib/sync/config';
 
 export interface AdminConfig {
   sync: {
@@ -14,37 +12,42 @@ export interface AdminConfig {
 }
 
 export function getAdminConfig(): AdminConfig {
-  if (!fs.existsSync(CONFIG_PATH)) {
-    return {
-      sync: {
-        enabled: false,
-        cron: '0 0 * * *',
-        status: 'idle',
-      },
-    };
-  }
-  const content = fs.readFileSync(CONFIG_PATH, 'utf-8');
-  try {
-    return JSON.parse(content);
-  } catch {
-    return {
-      sync: {
-        enabled: false,
-        cron: '0 0 * * *',
-        status: 'idle',
-      },
-    };
-  }
+  const config = getSyncConfig();
+  const runtime = getRuntimeSummary();
+  const currentJob = runtime.currentJobId ? getJob(runtime.currentJobId) : null;
+  const lastJob = runtime.lastJobId ? getJob(runtime.lastJobId) : null;
+
+  return {
+    sync: {
+      enabled: config.enabled,
+      cron: config.cron,
+      lastRun: runtime.lastRunAt,
+      status: currentJob
+        ? 'running'
+        : lastJob?.status === 'success' || lastJob?.status === 'partial_success'
+          ? 'success'
+          : lastJob?.status === 'failed'
+            ? 'failed'
+            : 'idle',
+      lastMessage:
+        currentJob
+          ? '同步任务正在执行中'
+          : lastJob?.errors[0] ??
+            (lastJob?.publishStatus === 'pending'
+              ? '数据已同步，尚未发布'
+              : undefined),
+    },
+  };
 }
 
 export function updateAdminConfig(newConfig: Partial<AdminConfig>) {
-  const current = getAdminConfig();
-  const updated = { ...current, ...newConfig };
-  // Merge deep properties for sync
-  if (newConfig.sync && current.sync) {
-      updated.sync = { ...current.sync, ...newConfig.sync };
+  const syncPatch = newConfig.sync;
+  if (syncPatch) {
+    updateSyncConfig({
+      enabled: syncPatch.enabled,
+      cron: syncPatch.cron,
+    });
   }
-  
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(updated, null, 2), 'utf-8');
-  return updated;
+
+  return getAdminConfig();
 }

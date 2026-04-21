@@ -1,20 +1,20 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getAdminCookieName, verifySessionToken } from '@/lib/admin/session';
 
-export function middleware(request: NextRequest) {
-  // Only protect /admin routes
+export async function proxy(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    // Skip login page and API routes (API handles its own auth or is public for login)
     if (
-      request.nextUrl.pathname === '/admin/login' ||
-      request.nextUrl.pathname.startsWith('/api/admin/login')
+      request.nextUrl.pathname === '/admin/login'
+      || request.nextUrl.pathname.startsWith('/api/admin/login')
     ) {
       return NextResponse.next();
     }
 
-    const authCookie = request.cookies.get('admin_auth');
+    const authCookie = request.cookies.get(getAdminCookieName());
+    const isAuthenticated = await verifySessionToken(authCookie?.value);
 
-    if (!authCookie || authCookie.value !== 'authenticated') {
+    if (!isAuthenticated) {
       const url = request.nextUrl.clone();
       url.pathname = '/admin/login';
       return NextResponse.redirect(url);

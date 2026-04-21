@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LocationPoint } from '@/lib/types';
 
@@ -31,8 +32,16 @@ export default async function ContentPage() {
               <div className="space-y-4">
                 {loc.stories.map((story) => (
                   <div key={story.id} className="flex gap-4 p-3 bg-gray-50 rounded hover:bg-gray-100">
-                     <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
-                        {story.avatarUrl && <img src={story.avatarUrl} alt={story.characterName} className="w-full h-full object-cover" />}
+                     <div className="relative w-12 h-12 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        {story.avatarUrl && (
+                          <Image
+                            src={story.avatarUrl}
+                            alt={story.characterName}
+                            fill
+                            sizes="48px"
+                            className="object-cover"
+                          />
+                        )}
                      </div>
                      <div className="flex-1">
                         <div className="flex justify-between">
