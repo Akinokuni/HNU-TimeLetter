@@ -11,6 +11,7 @@ import {
 } from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 
+
 /**
  * 全局导航栏 (Global Navigation Bar)
  *
@@ -36,7 +37,7 @@ const ITEMS: { key: NavKey; label: string }[] = [
 export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { isEnvelopeOpened, setEnvelopeOpened } = useAppStore();
+  const { setEnvelopeOpened } = useAppStore();
   const shouldReduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -52,12 +53,16 @@ export function GlobalNav() {
   // 不在后台管理路由下渲染
   if (pathname?.startsWith('/admin')) return null;
 
-  // 感知当前处于哪个视觉阶段：
+  // 感知当前处于哪个视觉阶段：纯路由判定，避免状态耦合
   // - `/creation` → 公示板
-  // - `/` + 信封已开启 → 地图
-  // - `/` + 信封未开启 → 主页
+  // - `/map`      → 地图
+  // - 其余（含 `/`） → 主页
   const active: NavKey =
-    pathname === '/creation' ? 'board' : isEnvelopeOpened ? 'map' : 'home';
+    pathname === '/creation'
+      ? 'board'
+      : pathname === '/map'
+        ? 'map'
+        : 'home';
 
   const isHome = pathname === '/';
   // 开屏态：首页且页面未滚动时，显示紧贴视口右上角的红色背景块
@@ -69,13 +74,13 @@ export function GlobalNav() {
       return;
     }
     if (key === 'home') {
-      if (pathname !== '/') router.push('/');
+      // 回到 `/` 重置开屏态，保证信封入场动画可以再次播放
       setEnvelopeOpened(false);
+      if (pathname !== '/') router.push('/');
       return;
     }
     // key === 'map'
-    if (pathname !== '/') router.push('/');
-    setEnvelopeOpened(true);
+    if (pathname !== '/map') router.push('/map');
   };
 
   // prefers-reduced-motion：弱化/关闭动效，保留最终态
@@ -92,8 +97,10 @@ export function GlobalNav() {
       className="fixed top-0 right-0 z-[1100] pointer-events-none select-none"
       aria-label="全局导航"
     >
-      {/* 红色背景块：首页开屏态专属；z-0，位于胶囊下层，包裹胶囊外轮廓 */}
-      <AnimatePresence>
+      {/* 红色背景块：首页开屏态专属；z-0，位于胶囊下层，包裹胶囊外轮廓。
+          `initial={false}` —— 首次进入开屏不播淡入，仅在滚动/回滚时做淡出淡入。
+          圆角与胶囊 rounded-full 等比放大（radius ≈ width/2），高度收敛以减少视觉占用。*/}
+      <AnimatePresence initial={false}>
         {showHomeBlock && (
           <motion.div
             key="home-block"
@@ -103,12 +110,14 @@ export function GlobalNav() {
               width: '7vw',
               minWidth: 80,
               maxWidth: 128,
-              height: '30vh',
+              height: '22vh',
+              minHeight: 140,
+              maxHeight: 260,
               background: '#c23643',
-              borderBottomLeftRadius: '9999px',
+              borderBottomLeftRadius: '3.5vw',
               zIndex: 0,
             }}
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={blockTransition}
@@ -116,12 +125,12 @@ export function GlobalNav() {
         )}
       </AnimatePresence>
 
-      {/* 胶囊：较窄(~4vw)，水平居中于红色背景之内，top 留 3vh 以显红色包裹感 */}
+      {/* 胶囊：较窄(~4vw)，top 留 2.5vh 以显红色包裹感，right 贴视口更紧 */}
       <div
         className="pointer-events-auto absolute"
         style={{
-          top: '3vh',
-          right: '1.5vw',
+          top: '2.5vh',
+          right: '0.8vw',
           zIndex: 10,
         }}
       >
