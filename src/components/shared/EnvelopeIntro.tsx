@@ -367,7 +367,7 @@ export function EnvelopeIntro() {
 
           {/* ── 第2列：标题 ── */}
           <motion.div
-            className="col-start-2 flex items-center justify-center self-center"
+            className="col-start-2 flex items-center justify-end self-center"
             initial={{ opacity: 0 }}
             animate={
               isOpening
@@ -381,12 +381,15 @@ export function EnvelopeIntro() {
               ease: [0.85, 0, 0.15, 1],
             }}
           >
-            <h1
-              className="mb-0 font-serif text-[clamp(26px,3vw,58px)] leading-[1.02] tracking-[0.08em] text-foreground"
-              style={{ textOrientation: 'upright', writingMode: 'vertical-rl' }}
-            >
-              与她的海大时光笺
-            </h1>
+            <Image
+              alt="与她的海大时光笺"
+              src="/logo.svg"
+              width={27}
+              height={120}
+              className="object-contain"
+              style={{ height: '60vh', width: 'auto' }}
+              priority
+            />
           </motion.div>
 
           {/* ── 第3~5列：信封 ── */}
