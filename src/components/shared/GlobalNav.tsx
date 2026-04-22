@@ -37,7 +37,7 @@ const ITEMS: { key: NavKey; label: string }[] = [
 export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { setEnvelopeOpened } = useAppStore();
+  const { setEnvelopeOpened, setIntroReady } = useAppStore();
   const shouldReduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -74,8 +74,12 @@ export function GlobalNav() {
       return;
     }
     if (key === 'home') {
-      // 回到 `/` 重置开屏态，保证信封入场动画可以再次播放
+      // 回到 `/` 重置开屏态：同时重置 isIntroReady，
+      // 否则 `src/app/page.tsx` 的 `locked = !isEnvelopeOpened && !isIntroReady`
+      // 因 `isIntroReady` 可能被 `/map` 或上一次 EnvelopeIntro 置为 true，
+      // 会让信封入场动画重放期间滚动不再锁定，违反 globals.css 的「开屏入场动画期间禁止下滑」约束。
       setEnvelopeOpened(false);
+      setIntroReady(false);
       if (pathname !== '/') router.push('/');
       return;
     }
