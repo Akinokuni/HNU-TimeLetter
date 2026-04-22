@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AnimatePresence, LayoutGroup, motion } from 'framer-motion';
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+  type Transition,
+} from 'framer-motion';
 import { useAppStore } from '@/lib/store';
 
 /**
@@ -10,6 +16,11 @@ import { useAppStore } from '@/lib/store';
  *
  * 以轻量悬浮姿态常驻于视口右上角，跨越所有页面保持位置不变，
  * 服务于「主页 / 地图 / 公示板」三个顶层视觉阶段之间的切换。
+ *
+ * 堆叠关系（由下至上）：
+ *   页面内容 → CustomScrollbar (z-1000) → 红色背景块 → 胶囊
+ * 外层容器 z-[1100]，高于滑块轨道；红色背景块 z-0，胶囊 z-10，
+ * 确保视觉上红色背景包裹胶囊、胶囊悬浮其上，而非二者并排。
  *
  * 视觉规格参见 `docs/design/交互设计.md#1.4 全局导航栏`。
  */
@@ -26,6 +37,7 @@ export function GlobalNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { isEnvelopeOpened, setEnvelopeOpened } = useAppStore();
+  const shouldReduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -48,7 +60,7 @@ export function GlobalNav() {
     pathname === '/creation' ? 'board' : isEnvelopeOpened ? 'map' : 'home';
 
   const isHome = pathname === '/';
-  // 开屏态：首页且页面未滚动时，胶囊容器下方附加红色长方形色块
+  // 开屏态：首页且页面未滚动时，显示紧贴视口右上角的红色背景块
   const showHomeBlock = mounted && isHome && !scrolled;
 
   const handleClick = (key: NavKey) => {
@@ -66,47 +78,63 @@ export function GlobalNav() {
     setEnvelopeOpened(true);
   };
 
+  // prefers-reduced-motion：弱化/关闭动效，保留最终态
+  const pillTransition: Transition = shouldReduceMotion
+    ? { duration: 0 }
+    : { type: 'spring', stiffness: 420, damping: 38 };
+  const blockTransition: Transition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 0.45, ease: 'easeInOut' };
+
   return (
     <div
-      className="fixed top-[2.5vh] right-[2.5vw] z-[90] pointer-events-none select-none"
+      // 钉视口右上角；z 高于 CustomScrollbar(z-[1000])，使红背景能覆盖滑块轨道区
+      className="fixed top-0 right-0 z-[1100] pointer-events-none select-none"
       aria-label="全局导航"
     >
-      <div className="pointer-events-auto relative">
-        {/* 首页开屏红色色块：仅左下角圆角，其余三角直角；视觉上紧贴胶囊下沿 */}
-        <AnimatePresence>
-          {showHomeBlock && (
-            <motion.div
-              key="home-block"
-              aria-hidden
-              className="absolute left-0 w-full pointer-events-none"
-              style={{
-                top: 'calc(100% - 1px)',
-                width: '7vw',
-                minWidth: 56,
-                maxWidth: 96,
-                height: '30vh',
-                background: '#c23643',
-                borderBottomLeftRadius: '9999px',
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.45, ease: 'easeInOut' }}
-            />
-          )}
-        </AnimatePresence>
+      {/* 红色背景块：首页开屏态专属；z-0，位于胶囊下层，包裹胶囊外轮廓 */}
+      <AnimatePresence>
+        {showHomeBlock && (
+          <motion.div
+            key="home-block"
+            aria-hidden
+            className="absolute top-0 right-0 pointer-events-none"
+            style={{
+              width: '7vw',
+              minWidth: 80,
+              maxWidth: 128,
+              height: '30vh',
+              background: '#c23643',
+              borderBottomLeftRadius: '9999px',
+              zIndex: 0,
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={blockTransition}
+          />
+        )}
+      </AnimatePresence>
 
-        {/* 胶囊容器：磨砂玻璃 + Primary 红描边 + 完整胶囊圆角 */}
+      {/* 胶囊：较窄(~4vw)，水平居中于红色背景之内，top 留 3vh 以显红色包裹感 */}
+      <div
+        className="pointer-events-auto absolute"
+        style={{
+          top: '3vh',
+          right: '1.5vw',
+          zIndex: 10,
+        }}
+      >
         <LayoutGroup id="global-nav">
           <ul
             className="relative flex flex-col items-stretch rounded-full border backdrop-blur-md shadow-sm"
             style={{
               borderColor: '#c23643',
               background: 'rgba(246, 241, 235, 0.55)',
-              width: '7vw',
-              minWidth: 56,
-              maxWidth: 96,
-              padding: '6px',
+              width: '4vw',
+              minWidth: 44,
+              maxWidth: 64,
+              padding: '5px',
             }}
           >
             {ITEMS.map((item) => {
@@ -118,11 +146,7 @@ export function GlobalNav() {
                       layoutId="global-nav-pill"
                       className="absolute inset-0 rounded-full"
                       style={{ background: '#c23643' }}
-                      transition={{
-                        type: 'spring',
-                        stiffness: 420,
-                        damping: 38,
-                      }}
+                      transition={pillTransition}
                     />
                   )}
                   <button
@@ -133,9 +157,9 @@ export function GlobalNav() {
                     style={{
                       writingMode: 'vertical-rl',
                       color: isActive ? '#ffffff' : '#5a4748',
-                      paddingTop: '14px',
-                      paddingBottom: '14px',
-                      fontSize: 'clamp(12px, 0.95vw, 15px)',
+                      paddingTop: '18px',
+                      paddingBottom: '18px',
+                      fontSize: 'clamp(11px, 0.85vw, 13px)',
                       lineHeight: 1.1,
                     }}
                   >
