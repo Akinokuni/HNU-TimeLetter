@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { motion, useAnimationControls, useReducedMotion, AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useAppStore } from '@/lib/store';
@@ -192,6 +193,7 @@ function calcLetterCenterOffset(): { x: number; y: number } {
  * ──────────────────────────────────────────── */
 export function EnvelopeIntro() {
   const { setEnvelopeOpened, setTransitioning, setIntroReady } = useAppStore();
+  const router = useRouter();
   const [phase, setPhase] = useState<Phase>('loading');
   const [ribbonRevealed, setRibbonRevealed] = useState(false);
   const [titleVisible, setTitleVisible] = useState(false);
@@ -213,6 +215,12 @@ export function EnvelopeIntro() {
     let cancelled = false;
     let frame2: number | undefined;
     let titleTimer: ReturnType<typeof setTimeout> | undefined;
+
+    // 每次挂载（含浏览器前进/后退回到 `/`）都重置开屏态，
+    // 让 `locked = !isIntroReady` 在入场动画期间重新成立，
+    // 避免上一次会话遗留的 `isIntroReady=true` 直接放行滚动。
+    setEnvelopeOpened(false);
+    setIntroReady(false);
 
     const runEntry = async () => {
       if (cancelled) return;
@@ -283,7 +291,18 @@ export function EnvelopeIntro() {
       if (frame2 !== undefined) cancelAnimationFrame(frame2);
       if (titleTimer !== undefined) clearTimeout(titleTimer);
     };
-  }, [envelopeControls, prefersReducedMotion, setIntroReady]);
+  }, [envelopeControls, prefersReducedMotion, setEnvelopeOpened, setIntroReady]);
+
+  /* ─── 开信期间锁滚：覆盖「点击蜡封 → 路由到 /map」之间的时间窗 ─── */
+  useEffect(() => {
+    if (phase !== 'opening') return;
+    document.documentElement.classList.add('intro-scroll-locked');
+    document.body.classList.add('intro-scroll-locked');
+    return () => {
+      document.documentElement.classList.remove('intro-scroll-locked');
+      document.body.classList.remove('intro-scroll-locked');
+    };
+  }, [phase]);
 
   /* ─── 开信交互 ─── */
   const handleOpen = useCallback(async () => {
@@ -340,8 +359,10 @@ export function EnvelopeIntro() {
     // 信纸内容同步淡出
     await sleep(900);
 
-    setEnvelopeOpened(true);
-  }, [envelopeControls, openControls, shellDropControls, setEnvelopeOpened, setTransitioning]);
+    // 跳转到 `/map`：由全局导航栏的「地图」激活态驱动胶囊切换，
+    // 状态层不再承担「是否显示地图」的判定（交给路由）。
+    router.push('/map');
+  }, [envelopeControls, openControls, shellDropControls, router, setTransitioning]);
 
   const isIdle = phase === 'idle';
   const isOpening = phase === 'opening';
