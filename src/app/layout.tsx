@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { GlobalNav } from "@/components/shared/GlobalNav";
+import { TransitionOverlay } from "@/components/shared/TransitionOverlay";
 
 const displayFont = localFont({
   src: "../../public/ChillDINGothic_SemiBold.otf",
@@ -32,6 +34,8 @@ export default function RootLayout({
         className={`${displayFont.variable} ${bodyFont.variable} font-sans antialiased`}
       >
         {children}
+        <GlobalNav />
+        <TransitionOverlay />
       </body>
     </html>
   );
