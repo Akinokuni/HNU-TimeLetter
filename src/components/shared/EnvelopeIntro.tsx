@@ -299,8 +299,14 @@ export function EnvelopeIntro() {
     };
   }, [envelopeControls, prefersReducedMotion, setEnvelopeOpened, setIntroReady]);
 
-  /* ─── 卸载时置位，供 handleOpen 的 await 链在每个副作用前短路 ─── */
+  /* ─── 卸载时置位，供 handleOpen 的 await 链在每个副作用前短路 ───
+   * 必须在 setup 阶段显式重置为 false：React Strict Mode（Next.js 16 dev 默认开启）
+   * 会跑 setup → cleanup → setup，若只在 cleanup 置 true，第二次 setup 后
+   * `unmountedRef` 永远卡在 true，导致 handleOpen 的两个 guard 永远命中，
+   * 开信动画执行到 `await sleep(500)` 后就停住，`setTransitioning` 与
+   * `router.push('/map')` 再也不会触发。 */
   useEffect(() => {
+    unmountedRef.current = false;
     return () => {
       unmountedRef.current = true;
     };
