@@ -1,6 +1,6 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect } from 'react';
 import { useAppStore } from '@/lib/store';
 
@@ -12,15 +12,35 @@ import { useAppStore } from '@/lib/store';
  *
  * 自动消退：挂起后 2500ms（对齐「信纸放大 0.9s + 目标页入场 ~1.5s」）清除 `isTransitioning`，
  * `AnimatePresence` 的 exit 再叠加 1s 淡出，总计约 3.5s。
+ *
+ * prefers-reduced-motion：遮罩保留（仍需遮挡视觉空窗），但移除三点脉冲/文字呼吸/淡出动效，
+ * 退化为瞬态显示与瞬态消失。
  */
 export function TransitionOverlay() {
   const { isTransitioning, setTransitioning } = useAppStore();
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     if (!isTransitioning) return;
     const t = setTimeout(() => setTransitioning(false), 2500);
     return () => clearTimeout(t);
   }, [isTransitioning, setTransitioning]);
+
+  const fadeTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 1, ease: 'easeInOut' as const };
+  const dotAnimate = shouldReduceMotion
+    ? { opacity: 1, y: 0 }
+    : { opacity: [0.3, 1, 0.3], y: [0, -4, 0] };
+  const dotTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 1.2, repeat: Infinity, ease: 'easeInOut' as const };
+  const textAnimate = shouldReduceMotion
+    ? { opacity: 0.8 }
+    : { opacity: [0.4, 0.8, 0.4] };
+  const textTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: 2, repeat: Infinity, ease: 'easeInOut' as const };
 
   return (
     <AnimatePresence>
@@ -31,7 +51,7 @@ export function TransitionOverlay() {
           className="fixed inset-0 z-[100] page-paper flex flex-col items-center justify-center gap-6"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 1, ease: 'easeInOut' }}
+          transition={fadeTransition}
         >
           {/* 加载动画：三点脉冲 */}
           <div className="flex items-center gap-2">
@@ -39,20 +59,15 @@ export function TransitionOverlay() {
               <motion.span
                 key={i}
                 className="block w-2.5 h-2.5 rounded-full bg-[#c23643]"
-                animate={{ opacity: [0.3, 1, 0.3], y: [0, -4, 0] }}
-                transition={{
-                  duration: 1.2,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                  delay: i * 0.15,
-                }}
+                animate={dotAnimate}
+                transition={{ ...dotTransition, delay: shouldReduceMotion ? 0 : i * 0.15 }}
               />
             ))}
           </div>
           <motion.p
             className="font-serif text-muted-foreground text-lg tracking-[0.22em]"
-            animate={{ opacity: [0.4, 0.8, 0.4] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            animate={textAnimate}
+            transition={textTransition}
           >
             加载中…
           </motion.p>

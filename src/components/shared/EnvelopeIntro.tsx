@@ -205,6 +205,12 @@ export function EnvelopeIntro() {
   const shellDropControls = useAnimationControls();
   const prefersReducedMotion = useReducedMotion();
 
+  // 组件是否已卸载的格卡——`handleOpen` 内的 await sleep 链总计 ~4s，
+  // 期间用户若点击 GlobalNav 跳转到 `/creation` 等路由，EnvelopeIntro 会卸载。
+  // 如果不拦截，末尾的 `setTransitioning(true)` + `router.push('/map')` 仍会执行，
+  // 将用户从他们选中的页面拽回地图。
+  const unmountedRef = useRef(false);
+
   // 保持 ref 同步，供异步回调中安全读取
   useEffect(() => {
     phaseRef.current = phase;
@@ -293,6 +299,19 @@ export function EnvelopeIntro() {
     };
   }, [envelopeControls, prefersReducedMotion, setEnvelopeOpened, setIntroReady]);
 
+  /* ─── 卸载时置位，供 handleOpen 的 await 链在每个副作用前短路 ───
+   * 必须在 setup 阶段显式重置为 false：React Strict Mode（Next.js 16 dev 默认开启）
+   * 会跑 setup → cleanup → setup，若只在 cleanup 置 true，第二次 setup 后
+   * `unmountedRef` 永远卡在 true，导致 handleOpen 的两个 guard 永远命中，
+   * 开信动画执行到 `await sleep(500)` 后就停住，`setTransitioning` 与
+   * `router.push('/map')` 再也不会触发。 */
+  useEffect(() => {
+    unmountedRef.current = false;
+    return () => {
+      unmountedRef.current = true;
+    };
+  }, []);
+
   /* ─── 开信期间锁滚：覆盖「点击蜡封 → 路由到 /map」之间的时间窗 ─── */
   useEffect(() => {
     if (phase !== 'opening') return;
@@ -345,6 +364,8 @@ export function EnvelopeIntro() {
     });
     await sleep(500);
 
+    if (unmountedRef.current) return;
+
     // 激活过渡遮罩 — 在信纸放大前就显示，防止过渡期间页脚露出
     setTransitioning(true);
 
@@ -358,6 +379,8 @@ export function EnvelopeIntro() {
     });
     // 信纸内容同步淡出
     await sleep(900);
+
+    if (unmountedRef.current) return;
 
     // 跳转到 `/map`：由全局导航栏的「地图」激活态驱动胶囊切换，
     // 状态层不再承担「是否显示地图」的判定（交给路由）。

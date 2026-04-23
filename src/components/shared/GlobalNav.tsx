@@ -74,13 +74,15 @@ export function GlobalNav() {
       return;
     }
     if (key === 'home') {
-      // 回到 `/` 重置开屏态：同时重置 isIntroReady，
-      // 否则 `src/app/page.tsx` 的 `locked = !isEnvelopeOpened && !isIntroReady`
-      // 因 `isIntroReady` 可能被 `/map` 或上一次 EnvelopeIntro 置为 true，
-      // 会让信封入场动画重放期间滚动不再锁定，违反 globals.css 的「开屏入场动画期间禁止下滑」约束。
-      setEnvelopeOpened(false);
-      setIntroReady(false);
-      if (pathname !== '/') router.push('/');
+      // 只在从非 `/` 回 `/` 时才重置：
+      // 已在 `/` 上时，`EnvelopeIntro` 入场 effect 依赖稳定不会重跑——
+      // 如果这里直接 `setIntroReady(false)` 会令 `page.tsx` 的 `locked = mounted && !isIntroReady`
+      // 立即成立且永远无法回调 `setIntroReady(true)`，导致页面被永久锁滚。
+      if (pathname !== '/') {
+        setEnvelopeOpened(false);
+        setIntroReady(false);
+        router.push('/');
+      }
       return;
     }
     // key === 'map'
