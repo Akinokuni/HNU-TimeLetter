@@ -58,12 +58,12 @@
 
 :root {
   /* 全站视口画框 token — 规范见 docs/design/全站视口画框.md §2.3
-   * 站点外层描边 5px #fffdfd，外轮廓 16px 圆角，内轮廓 11px 圆角。
+   * 外轮廓贴合视口四边为直角，不做圆角；白色描边厚度 5px #fffdfd；
+   * 向内收束 5px 后，画框内缘以 16px 圆角裁切内容区。
    * 这组变量是画框尺寸与配色的单一事实来源，禁止在组件中分散硬编码。*/
   --site-frame-border-width: 5px;
   --site-frame-radius: 16px;
   --site-frame-color: #fffdfd;
-  --site-frame-inner-radius: 11px;
 
   --radius: 1.25rem;
   --background: #ece9e4;
@@ -186,13 +186,14 @@
     margin: 0;
   }
   /* 画框内部纸面（fixed 覆盖在画框内缘以内），作为全站最底层纸张。
+   * 圆角与画框内缘一致（--site-frame-radius），边界严丝合缝。
    * z-index: -1 被 body `isolation: isolate` 的栈上下文夹住，
    * 仅下潜到 body 自身之下、不会穿到 html 外，因此安全。*/
   body::before {
     content: "";
     position: fixed;
     inset: var(--site-frame-border-width);
-    border-radius: var(--site-frame-inner-radius);
+    border-radius: var(--site-frame-radius);
     background: #ece9e4;
     z-index: -1;
     pointer-events: none;
@@ -302,8 +303,16 @@ body.intro-scroll-locked {
    * 1) .site-frame-shell：站点级画框容器，挂载 children / GlobalNav / TransitionOverlay。
    *    本项目的主滚动交由 body 承担（Lenis 驱动 window scroll），
    *    因此 shell 不接管滚动，仅提供结构语义与最小高度，确保页面背景占满画框内。
+   *
    * 2) .site-frame-border：画框描边层，位于视口最顶层并以 pointer-events:none 穿透点击。
-   *    z-index 高于 QuillSearch(z-9999) 等一切全屏遮罩，使 5px 白边在任何状态都可见。
+   *    z-index 高于 QuillSearch(z-9999) 等一切全屏遮罩，使白边在任何状态都可见。
+   *    几何要求：外轮廓=视口矩形（直角），内轮廓=16px 圆角。
+   *    实现：容器 inset:0 + overflow:hidden 提供视口矩形裁切；内嵌 ::before 以
+   *    inset=--site-frame-border-width、border-radius=--site-frame-radius 作为
+   *    「内空洞」，通过超大 spread 的 box-shadow 向外填满画框色。overflow:hidden
+   *    将 box-shadow 裁剪到视口矩形，从而外角保持直角、内角保持 16px 圆角。
+   *    关键：伪元素不使用 border 属性，彻底绕开 Tailwind preflight 的 border-width:0。
+   *
    * 3) .site-frame-fixed：为需要与画框内缘对齐的 fixed 全屏层提供统一 inset 与圆角裁切。
    * 4) .site-frame-scrollbar-track：自定义滚动条轨道的画框内缘定位 + 高度归一。*/
   .site-frame-shell {
@@ -316,13 +325,20 @@ body.intro-scroll-locked {
     inset: 0;
     pointer-events: none;
     z-index: 10001;
-    border: var(--site-frame-border-width) solid var(--site-frame-color);
+    overflow: hidden;
+  }
+  .site-frame-border::before {
+    content: "";
+    position: absolute;
+    inset: var(--site-frame-border-width);
     border-radius: var(--site-frame-radius);
-    box-sizing: border-box;
+    /* spread=9999px 的实心外投影向四周无限填色；由父级 overflow:hidden 裁至视口矩形，
+     * 因此外侧呈直角矩形、内侧沿本伪元素的 16px 圆角收束。*/
+    box-shadow: 0 0 0 9999px var(--site-frame-color);
   }
   .site-frame-fixed {
     inset: var(--site-frame-border-width);
-    border-radius: var(--site-frame-inner-radius);
+    border-radius: var(--site-frame-radius);
     overflow: hidden;
   }
   .site-frame-scrollbar-track {

@@ -124,8 +124,8 @@ export function GlobalNav() {
               maxHeight: 320,
               background: '#c23643',
               borderBottomLeftRadius: '3.5vw',
-              // 右上角跟随画框内圆角，避免红色方块与 5px 白边的 11px 内轮廓产生接缝
-              borderTopRightRadius: 'var(--site-frame-inner-radius)',
+              // 右上角跟随画框内圆角（16px），与画框内缘严丝合缝
+              borderTopRightRadius: 'var(--site-frame-radius)',
               zIndex: 0,
             }}
             initial={{ opacity: 1 }}
