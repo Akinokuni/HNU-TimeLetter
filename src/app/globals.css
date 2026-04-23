@@ -57,6 +57,14 @@
 }
 
 :root {
+  /* 全站视口画框 token — 规范见 docs/design/全站视口画框.md §2.3
+   * 站点外层描边 5px #fffdfd，外轮廓 16px 圆角，内轮廓 11px 圆角。
+   * 这组变量是画框尺寸与配色的单一事实来源，禁止在组件中分散硬编码。*/
+  --site-frame-border-width: 5px;
+  --site-frame-radius: 16px;
+  --site-frame-color: #fffdfd;
+  --site-frame-inner-radius: 11px;
+
   --radius: 1.25rem;
   --background: #ece9e4;
   --foreground: #342628;
@@ -158,7 +166,7 @@
   }
   html {
     overflow-x: hidden;
-    background: var(--background);
+    background: var(--site-frame-color);
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     -webkit-font-smoothing: antialiased;
@@ -169,10 +177,25 @@
     min-height: 100vh;
     position: relative;
     isolation: isolate;
-    background: #ece9e4;
+    /* 画框外层统一为 --site-frame-color；画框内部纸面由 body::before 承担。
+     * 这样做的好处是视口四角（16px 外圆角之外的 4 小片区域）始终显示画框色，
+     * 而非纸面色，从而与 .site-frame-border 的 5px 白色描边无缝衔接。*/
+    background: var(--site-frame-color);
     font-size: var(--text-base);
     line-height: 1.8;
     margin: 0;
+  }
+  /* 画框内部纸面（fixed 覆盖在画框内缘以内），作为全站最底层纸张。
+   * z-index: -1 被 body `isolation: isolate` 的栈上下文夹住，
+   * 仅下潜到 body 自身之下、不会穿到 html 外，因此安全。*/
+  body::before {
+    content: "";
+    position: fixed;
+    inset: var(--site-frame-border-width);
+    border-radius: var(--site-frame-inner-radius);
+    background: #ece9e4;
+    z-index: -1;
+    pointer-events: none;
   }
   h1,
   h2,
@@ -275,6 +298,39 @@ body.intro-scroll-locked {
 }
 
 @layer utilities {
+  /* ── 全站视口画框共享类 —— docs/design/全站视口画框.md §4.2 ──
+   * 1) .site-frame-shell：站点级画框容器，挂载 children / GlobalNav / TransitionOverlay。
+   *    本项目的主滚动交由 body 承担（Lenis 驱动 window scroll），
+   *    因此 shell 不接管滚动，仅提供结构语义与最小高度，确保页面背景占满画框内。
+   * 2) .site-frame-border：画框描边层，位于视口最顶层并以 pointer-events:none 穿透点击。
+   *    z-index 高于 QuillSearch(z-9999) 等一切全屏遮罩，使 5px 白边在任何状态都可见。
+   * 3) .site-frame-fixed：为需要与画框内缘对齐的 fixed 全屏层提供统一 inset 与圆角裁切。
+   * 4) .site-frame-scrollbar-track：自定义滚动条轨道的画框内缘定位 + 高度归一。*/
+  .site-frame-shell {
+    position: relative;
+    min-height: 100vh;
+    isolation: isolate;
+  }
+  .site-frame-border {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10001;
+    border: var(--site-frame-border-width) solid var(--site-frame-color);
+    border-radius: var(--site-frame-radius);
+    box-sizing: border-box;
+  }
+  .site-frame-fixed {
+    inset: var(--site-frame-border-width);
+    border-radius: var(--site-frame-inner-radius);
+    overflow: hidden;
+  }
+  .site-frame-scrollbar-track {
+    top: var(--site-frame-border-width);
+    right: var(--site-frame-border-width);
+    height: calc(100vh - var(--site-frame-border-width) * 2);
+  }
+
   /* 丝带 clip-path 显影动画 — 纯 CSS 过渡，性能优于 JS 驱动 */
   .hero-ribbon-clip {
     clip-path: inset(0% 0% 100% 0%);

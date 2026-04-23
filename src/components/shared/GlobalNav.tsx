@@ -97,8 +97,13 @@ export function GlobalNav() {
 
   return (
     <div
-      // 钉视口右上角；z 高于 CustomScrollbar(z-[1000])，使红背景能覆盖滑块轨道区
-      className="fixed top-0 right-0 z-[1100] pointer-events-none select-none"
+      // 钉视口右上角的画框内缘；z 高于 CustomScrollbar(z-[1000])，使红背景能覆盖滑块轨道区。
+      // top / right 偏移 --site-frame-border-width，确保整组导航位于 5px 白色画框之内。
+      className="fixed z-[1100] pointer-events-none select-none"
+      style={{
+        top: 'var(--site-frame-border-width)',
+        right: 'var(--site-frame-border-width)',
+      }}
       aria-label="全局导航"
     >
       {/* 红色背景块：首页开屏态专属；z-0，位于胶囊下层，包裹胶囊外轮廓。
@@ -119,6 +124,8 @@ export function GlobalNav() {
               maxHeight: 320,
               background: '#c23643',
               borderBottomLeftRadius: '3.5vw',
+              // 右上角跟随画框内圆角，避免红色方块与 5px 白边的 11px 内轮廓产生接缝
+              borderTopRightRadius: 'var(--site-frame-inner-radius)',
               zIndex: 0,
             }}
             initial={{ opacity: 1 }}

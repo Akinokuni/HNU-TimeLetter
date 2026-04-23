@@ -33,9 +33,22 @@ export default function RootLayout({
       <body
         className={`${displayFont.variable} ${bodyFont.variable} font-sans antialiased`}
       >
-        {children}
-        <GlobalNav />
-        <TransitionOverlay />
+        {/*
+         * 站点级画框容器 —— docs/design/全站视口画框.md §4.1
+         * children / GlobalNav / TransitionOverlay 统一挂在 shell 内，
+         * 任何需要「视口全屏」的层以 shell 为参照而非浏览器物理边缘。
+         */}
+        <div className="site-frame-shell">
+          {children}
+          <GlobalNav />
+          <TransitionOverlay />
+        </div>
+        {/*
+         * 画框描边层 —— 置于视口最顶层，z-index 高于一切全屏遮罩，
+         * 使 5px #fffdfd 白边在页面切换、过渡、模态、加载态下始终可见。
+         * pointer-events:none 穿透点击，不影响交互。
+         */}
+        <div className="site-frame-border" aria-hidden />
       </body>
     </html>
   );

@@ -26,6 +26,17 @@ interface CustomScrollbarProps {
   lenis?: Lenis | null;
 }
 
+/**
+ * 读取全站视口画框的边框宽度（SSOT 来自 globals.css 的 --site-frame-border-width）。
+ * 滚动条轨道与滑块的几何计算都需要减去上下两条画框边，才能保证滑块不越过画框内缘。
+ */
+function getFrameBorderWidth(): number {
+  if (typeof window === 'undefined') return 5;
+  const v = getComputedStyle(document.documentElement).getPropertyValue('--site-frame-border-width');
+  const n = parseFloat(v);
+  return Number.isFinite(n) && n > 0 ? n : 5;
+}
+
 export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollbarProps) {
   const thumbRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -50,19 +61,22 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
     const thumb = thumbRef.current;
     if (!thumb) return;
 
-    // 滑块高度 = 视口高度 × (视口 / 总文档高度)
+    // 滑块高度 = 轨道可用高度 × (视口 / 总文档高度)
+    // 轨道可用高度 = 视口高度 - 上下两条画框边，避免滑块滑过画框内缘
     const updateThumbHeight = () => {
       const scrollHeight = document.documentElement.scrollHeight;
       const clientHeight = document.documentElement.clientHeight;
+      const trackHeight = Math.max(0, clientHeight - 2 * getFrameBorderWidth());
       const heightRatio = Math.min(1, clientHeight / scrollHeight);
-      const h = Math.max(40, clientHeight * heightRatio);
+      const h = Math.max(40, trackHeight * heightRatio);
       thumb.style.height = `${h}px`;
     };
 
-    // 滑块位移 = 进度 × (视口高度 - 滑块高度)
+    // 滑块位移 = 进度 × (轨道可用高度 - 滑块高度)
     const updateThumbPosition = (scroll: number, limit: number) => {
       const progress = limit > 0 ? scroll / limit : 0;
-      const maxTranslate = window.innerHeight - thumb.offsetHeight;
+      const trackHeight = Math.max(0, window.innerHeight - 2 * getFrameBorderWidth());
+      const maxTranslate = Math.max(0, trackHeight - thumb.offsetHeight);
       const translateY = Math.max(0, Math.min(maxTranslate, progress * maxTranslate));
       thumb.style.transform = `translate3d(0, ${translateY}px, 0)`;
     };
@@ -135,7 +149,9 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
     const scrollHeight = document.documentElement.scrollHeight;
     const viewportHeight = window.innerHeight;
     const scrollLimit = Math.max(0, scrollHeight - viewportHeight);
-    const trackRange = Math.max(1, viewportHeight - thumb.offsetHeight);
+    // 画框内缘以上/以下各让出 --site-frame-border-width，使拖拽位移与视觉轨道一致
+    const trackHeight = Math.max(0, viewportHeight - 2 * getFrameBorderWidth());
+    const trackRange = Math.max(1, trackHeight - thumb.offsetHeight);
     const capturedLenis = lenis;
     const startScroll = capturedLenis ? capturedLenis.scroll : window.scrollY;
 
@@ -186,7 +202,9 @@ export function CustomScrollbar({ enabled = true, lenis = null }: CustomScrollba
     <div
       ref={trackRef}
       aria-hidden="true"
-      className="fixed top-0 right-0 z-[1000] h-screen pointer-events-none transition-opacity duration-300"
+      // site-frame-scrollbar-track：由 globals.css 统一提供 top/right/height，
+      // 使轨道起止贴合画框内缘，不覆盖 5px 白色描边。
+      className="fixed z-[1000] pointer-events-none transition-opacity duration-300 site-frame-scrollbar-track"
       style={{ width: '15px', backgroundColor: 'transparent' }}
     >
       <div
