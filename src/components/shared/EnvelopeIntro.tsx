@@ -108,11 +108,11 @@ const LOGO_COLOR_BASE = '#ece9e4';
 const GUIDE_STROKE_WIDTH = 100;
 const GUIDE_HALF_STROKE = GUIDE_STROKE_WIDTH / 2;
 
-// Logo 中心点：第 4 行 × 第 2 列几何中心 = (30vw, 35vh)
-const LOGO_CENTER_X_RATIO = 0.3;
+// Logo 几何：left=35vw（左边缘）、width=50vw、垂直中心 35vh
+// 用户调整：从「网格中心锚定」改为「左边缘锚定」，使横版 Logo 更贴近左边缘并更显宽。
+const LOGO_LEFT_RATIO = 0.35;
 const LOGO_CENTER_Y_RATIO = 0.35;
-// Logo 横向铺幅（占视口宽度的比例）；纵向由原始图比例 1023.59:396.03 推导
-const LOGO_WIDTH_RATIO = 0.32;
+const LOGO_WIDTH_RATIO = 0.5;
 const LOGO_ASPECT = 1023.59 / 396.03;
 
 // 信封中心点：(80vw, 70vh)
@@ -194,21 +194,35 @@ export function EnvelopeIntro() {
   const maskId = `intro-guide-mask-${reactId.replace(/:/g, '')}`;
   const recolorId = `intro-logo-recolor-${reactId.replace(/:/g, '')}`;
 
-  /* ─── 引导线几何 ─── */
+  /* ─── 引导线几何 ───
+   * 使用 polyline 而非单段直线：最末段强制竖直（与下方 `GuideLine` 第一段同向同宽），
+   * 从而让开屏页扫动遮罩与下方红色引导线在视口底边 (20vw - 50px, 100vh) 处
+   * 以等宽 100px 竖直 stroke 衔接，消除「斜向带」与「竖向带」之间的台阶。
+   * - 段一：(60vw, 0) → 拐点 (ribbonX, 0.9 × 100vh)
+   * - 段二：拐点 → (ribbonX, 100vh)
+   */
   const guide = useMemo(() => {
-    const start = { x: vw * 0.6, y: 0 };
-    const end = { x: vw * 0.2 - GUIDE_HALF_STROKE, y: vh };
-    const length = Math.hypot(end.x - start.x, end.y - start.y);
-    return { start, end, length };
+    const startX = vw * 0.6;
+    const endX = vw * 0.2 - GUIDE_HALF_STROKE;
+    const kinkY = vh * 0.9;
+    const seg1 = Math.hypot(endX - startX, kinkY - 0);
+    const seg2 = vh - kinkY;
+    return {
+      start: { x: startX, y: 0 },
+      kink: { x: endX, y: kinkY },
+      end: { x: endX, y: vh },
+      length: seg1 + seg2,
+      d: `M ${startX} 0 L ${endX} ${kinkY} L ${endX} ${vh}`,
+    };
   }, [vw, vh]);
 
   /* ─── Logo / 信封 像素几何 ─── */
   const logoGeometry = useMemo(() => {
     const width = vw * LOGO_WIDTH_RATIO;
     const height = width / LOGO_ASPECT;
-    const cx = vw * LOGO_CENTER_X_RATIO;
+    const x = vw * LOGO_LEFT_RATIO;
     const cy = vh * LOGO_CENTER_Y_RATIO;
-    return { x: cx - width / 2, y: cy - height / 2, width, height };
+    return { x, y: cy - height / 2, width, height };
   }, [vw, vh]);
 
   const envelopeWidth = vw > 0 ? pickEnvelopeWidth(vw) : 0;
@@ -417,9 +431,8 @@ export function EnvelopeIntro() {
             <div
               className="absolute"
               style={{
-                left: `${LOGO_CENTER_X_RATIO * 100}vw`,
-                top: `${LOGO_CENTER_Y_RATIO * 100}vh`,
-                transform: 'translate(-50%, -50%)',
+                left: `${LOGO_LEFT_RATIO * 100}vw`,
+                top: `calc(${LOGO_CENTER_Y_RATIO * 100}vh - ${vw * LOGO_WIDTH_RATIO / LOGO_ASPECT / 2}px)`,
                 width: `${LOGO_WIDTH_RATIO * 100}vw`,
                 aspectRatio: `${1023.59} / ${396.03}`,
                 backgroundColor: LOGO_COLOR_BASE,
@@ -452,14 +465,13 @@ export function EnvelopeIntro() {
             <defs>
               <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={vw} height={vh}>
                 <rect x="0" y="0" width={vw} height={vh} fill="black" />
-                <motion.line
-                  x1={guide.start.x}
-                  y1={guide.start.y}
-                  x2={guide.end.x}
-                  y2={guide.end.y}
+                <motion.path
+                  d={guide.d}
+                  fill="none"
                   stroke="white"
                   strokeWidth={GUIDE_STROKE_WIDTH}
                   strokeLinecap="round"
+                  strokeLinejoin="round"
                   strokeDasharray={guide.length}
                   initial={{ strokeDashoffset: guide.length }}
                   animate={{ strokeDashoffset: 0 }}

@@ -40,10 +40,8 @@ export function GlobalNav() {
   const { setEnvelopeOpened, setIntroReady } = useAppStore();
   const shouldReduceMotion = useReducedMotion();
   const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const onScroll = () => setScrolled(window.scrollY > 1);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -65,8 +63,10 @@ export function GlobalNav() {
         : 'home';
 
   const isHome = pathname === '/';
-  // 开屏态：首页且页面未滚动时，显示紧贴视口右上角的红色背景块
-  const showHomeBlock = mounted && isHome && !scrolled;
+  // 开屏态：首页且页面未滚动时，显示紧贴视口右上角的红色背景块。
+  // 不再用 mounted gate —— `scrolled` 初始化为 false 在 SSR/CSR 一致，
+  // 直接渲染可避免首屏「红色块从无到有跳出」的视觉抖动。
+  const showHomeBlock = isHome && !scrolled;
 
   const handleClick = (key: NavKey) => {
     if (key === 'board') {
