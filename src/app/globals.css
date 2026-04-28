@@ -14,8 +14,10 @@
   --color-ink-strong: var(--ink-strong);
   --color-ink-muted: var(--ink-muted);
   --color-primary-soft: var(--primary-soft);
+  --color-neutral-light: var(--neutral-light);
   --color-primary-deep: var(--primary-deep);
   --color-accent-metal: var(--accent-metal);
+  --color-neutral-dark: var(--accent-metal);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -71,12 +73,13 @@
   --paper: #f6f1eb;
   --paper-strong: #e2d7cf;
   --ink-strong: #342628;
-  --ink: #5a4748;
+  --ink: #563B3B;
   --ink-muted: #7a6664;
   --primary: #c23643;
   --primary-deep: #a92d38;
-  --primary-soft: #ecd0d4;
-  --accent-metal: #a9825e;
+  --primary-soft: #e7d0d0;
+  --neutral-light: #e55966;
+  --accent-metal: #634725;
   --card: var(--paper);
   --card-foreground: var(--ink-strong);
   --popover: var(--paper);
@@ -91,9 +94,9 @@
   --destructive: #a3202f;
   --border: #cbbdb5;
   --input: #d8ccc4;
-  --ring: #c2364347;
+  --ring: rgba(229, 89, 102, 0.28);
   --chart-1: #c23643;
-  --chart-2: #a9825e;
+  --chart-2: #634725;
   --chart-3: #7a6664;
   --chart-4: #e2d7cf;
   --chart-5: #8f5b64;
@@ -127,7 +130,8 @@
   --primary: #d7505d;
   --primary-deep: #b83a46;
   --primary-soft: #52282e;
-  --accent-metal: #c49a74;
+  --neutral-light: #c46672;
+  --accent-metal: #9e7a4a;
   --card: var(--paper);
   --card-foreground: var(--ink-strong);
   --popover: var(--paper);
@@ -142,7 +146,7 @@
   --destructive: #c13e4a;
   --border: #5e4949;
   --input: #5e4949;
-  --ring: #d7505d59;
+  --ring: rgba(215, 80, 93, 0.35);
   --chart-1: var(--primary);
   --chart-2: var(--accent-metal);
   --chart-3: var(--ink-muted);
@@ -284,7 +288,7 @@ body.intro-scroll-locked {
     font-size: var(--text-intro);
     line-height: 1.7;
     font-weight: 400;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.075em;
     max-width: 800px;
     margin-bottom: 3rem;
   }
@@ -292,7 +296,7 @@ body.intro-scroll-locked {
     font-size: var(--text-base);
     line-height: 2;
     font-weight: 300;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.045em;
     max-width: 65ch;
     margin-bottom: 2rem;
   }

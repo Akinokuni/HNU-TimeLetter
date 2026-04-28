@@ -178,7 +178,7 @@ export function GlobalNav() {
                     className="relative w-full flex items-center justify-center font-serif tracking-[0.18em] transition-colors duration-200"
                     style={{
                       writingMode: 'vertical-rl',
-                      color: isActive ? '#ffffff' : '#5a4748',
+                      color: isActive ? '#ffffff' : '#563B3B',
                       paddingTop: '18px',
                       paddingBottom: '18px',
                       fontSize: 'clamp(11px, 0.85vw, 13px)',
