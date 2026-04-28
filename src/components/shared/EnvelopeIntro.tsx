@@ -3,9 +3,25 @@
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, useAnimationControls, useReducedMotion, AnimatePresence } from 'framer-motion';
-import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
+
+/* ────────────────────────────────────────────
+ * 视口尺寸采集 hook
+ * 像素级监听 `window.innerWidth/innerHeight`，
+ * 为引导线、色块斜底边、Logo 中心点提供可计算的几何基准。
+ * ──────────────────────────────────────────── */
+function useViewportSize() {
+  const [size, setSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+  useEffect(() => {
+    const update = () => setSize({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+  return size;
+}
 
 /* ────────────────────────────────────────────
  * 火漆碎裂碎片组件
@@ -72,72 +88,50 @@ function WaxSealShards({ isShattered, sizeClass }: { isShattered: boolean; sizeC
 }
 
 /* ────────────────────────────────────────────
- * Ribbon SVG — 首屏左侧竖向丝带装饰
- * 使用 SVG 内置 feDropShadow 替代 CSS drop-shadow，
- * 避免 GPU 合成导致的边缘半透明伪影。
- * ──────────────────────────────────────────── */
-function TwistedRibbon() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none h-full w-[100px] shrink-0"
-    >
-      <svg
-        className="size-full"
-        fill="none"
-        preserveAspectRatio="none"
-        viewBox="0 0 100 1080"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <defs>
-          <linearGradient
-            gradientUnits="userSpaceOnUse"
-            id="hero-ribbon-bottom"
-            x1="183.315" x2="-83.5254"
-            y1="16.7419" y2="1063.26"
-          >
-            <stop stopColor="#C23643" />
-            <stop offset="0.2" stopColor="#AE303C" />
-            <stop offset="0.4" stopColor="#86252E" />
-            <stop offset="0.5" stopColor="#9A2B35" />
-            <stop offset="0.6" stopColor="#86252E" />
-            <stop offset="0.8" stopColor="#AE303C" />
-            <stop offset="1" stopColor="#C23643" />
-          </linearGradient>
-          <linearGradient
-            gradientUnits="userSpaceOnUse"
-            id="hero-ribbon-top"
-            x1="50" x2="50"
-            y1="-540" y2="540"
-          >
-            <stop stopColor="#D45863" />
-            <stop offset="0.58" stopColor="#C23643" />
-            <stop offset="1" stopColor="#7A1623" />
-          </linearGradient>
-        </defs>
-        <g>
-          <path
-            d="M50 540C75 675 100 810 100 1080H0C0 810 25 675 50 540Z"
-            fill="url(#hero-ribbon-bottom)"
-            shapeRendering="geometricPrecision"
-          />
-          <path
-            d="M100 0C100 270 75 405 50 540C25 405 0 270 0 0H100Z"
-            fill="url(#hero-ribbon-top)"
-            shapeRendering="geometricPrecision"
-          />
-        </g>
-      </svg>
-    </div>
-  );
-}
-
-/* ────────────────────────────────────────────
  * 类型 & 工具
  * ──────────────────────────────────────────── */
-type Phase = 'loading' | 'entering' | 'idle' | 'opening';
+type Phase = 'loading' | 'sweeping' | 'entering' | 'idle' | 'opening';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/* ────────────────────────────────────────────
+ * 几何常量 —— 规范见 docs/design/开屏页重构.md
+ * ──────────────────────────────────────────── */
+const FIELD_BASE = '#ece9e4';     // Base Layer 全局底色
+const BLOCK_BASE = '#c23643';     // Base Layer 顶部斜底色块
+const FIELD_TOP = '#c23643';      // Top Layer 全局底色（与 Base 互换）
+const BLOCK_TOP = '#ece9e4';      // Top Layer 顶部斜底色块（与 Base 互换）
+const LOGO_COLOR_BASE = '#ece9e4';
+// Top Layer 中 Logo 着色由 SVG `<filter>` `feColorMatrix` 完成（见 §5.2）。
+
+// 引导线宽度（像素）
+const GUIDE_STROKE_WIDTH = 100;
+const GUIDE_HALF_STROKE = GUIDE_STROKE_WIDTH / 2;
+
+// Logo 中心点：第 4 行 × 第 2 列几何中心 = (30vw, 35vh)
+const LOGO_CENTER_X_RATIO = 0.3;
+const LOGO_CENTER_Y_RATIO = 0.35;
+// Logo 横向铺幅（占视口宽度的比例）；纵向由原始图比例 1023.59:396.03 推导
+const LOGO_WIDTH_RATIO = 0.32;
+const LOGO_ASPECT = 1023.59 / 396.03;
+
+// 信封中心点：(80vw, 70vh)
+const ENVELOPE_CENTER_X_RATIO = 0.8;
+const ENVELOPE_CENTER_Y_RATIO = 0.7;
+
+// 入场动效时序（毫秒）
+const SWEEP_DURATION_MS = 1000;
+const SWEEP_DELAY_MS = 120;
+
+/**
+ * 计算信封在不同断点下的像素宽度（与原 className 中的 280 / 360 / 480 / 595 一致）
+ */
+function pickEnvelopeWidth(vw: number): number {
+  if (vw < 640) return 280;
+  if (vw < 768) return 360;
+  if (vw < 1024) return 480;
+  return 595;
+}
 
 /**
  * 计算信纸展开的缩放倍率，使其覆盖整个视口。
@@ -146,13 +140,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 function calcLetterScale(): number {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-
-  // 信封在不同断点的宽度 (与 className 中的响应式宽度对应)
-  let envelopeWidth = 595;
-  if (vw < 640) envelopeWidth = 280;
-  else if (vw < 768) envelopeWidth = 360;
-  else if (vw < 1024) envelopeWidth = 480;
-
+  const envelopeWidth = pickEnvelopeWidth(vw);
   const envelopeHeight = envelopeWidth * (397 / 595);
   const letterWidth = envelopeWidth - 32;
   const letterHeight = envelopeHeight - 32;
@@ -164,20 +152,14 @@ function calcLetterScale(): number {
 }
 
 /**
- * 计算信纸从当前位置移到视口正中心所需的偏移量
+ * 计算信纸从 (80vw, 70vh) 中心位置移到视口正中心所需的偏移量
  */
 function calcLetterCenterOffset(): { x: number; y: number } {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
 
-  // 信封在五列网格中的位置：col-start-3 col-span-3，mx-auto
-  // 信封中心大约在视口的 (3/5 + 3/10) * vw = 0.6 * vw 处（第3-5列中心）
-  // 更精确：网格5列等分，第3列起始 = 2/5 * vw，跨3列中心 = (2/5 + 3/10) * vw = 7/10 * vw
-  // 但 mx-auto 会让信封在这3列中居中
-  const gridColStart = (2 / 5) * vw;
-  const gridColSpan = (3 / 5) * vw;
-  const envelopeCenterX = gridColStart + gridColSpan / 2;
-  const envelopeCenterY = vh / 2;
+  const envelopeCenterX = ENVELOPE_CENTER_X_RATIO * vw;
+  const envelopeCenterY = ENVELOPE_CENTER_Y_RATIO * vh;
 
   const viewportCenterX = vw / 2;
   const viewportCenterY = vh / 2;
@@ -195,9 +177,8 @@ export function EnvelopeIntro() {
   const { setEnvelopeOpened, setTransitioning, setIntroReady } = useAppStore();
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>('loading');
-  const [ribbonRevealed, setRibbonRevealed] = useState(false);
-  const [titleVisible, setTitleVisible] = useState(false);
   const [isShattered, setIsShattered] = useState(false);
+  const [sweepDone, setSweepDone] = useState(false);
   const phaseRef = useRef<Phase>('loading');
 
   const envelopeControls = useAnimationControls();
@@ -205,11 +186,33 @@ export function EnvelopeIntro() {
   const shellDropControls = useAnimationControls();
   const prefersReducedMotion = useReducedMotion();
 
-  // 组件是否已卸载的格卡——`handleOpen` 内的 await sleep 链总计 ~4s，
-  // 期间用户若点击 GlobalNav 跳转到 `/creation` 等路由，EnvelopeIntro 会卸载。
-  // 如果不拦截，末尾的 `setTransitioning(true)` + `router.push('/map')` 仍会执行，
-  // 将用户从他们选中的页面拽回地图。
+  // 卡口：用于异步链路在卸载后短路，避免被 router.push 拽回 /map
   const unmountedRef = useRef(false);
+
+  const { w: vw, h: vh } = useViewportSize();
+  const reactId = useId();
+  const maskId = `intro-guide-mask-${reactId.replace(/:/g, '')}`;
+  const recolorId = `intro-logo-recolor-${reactId.replace(/:/g, '')}`;
+
+  /* ─── 引导线几何 ─── */
+  const guide = useMemo(() => {
+    const start = { x: vw * 0.6, y: 0 };
+    const end = { x: vw * 0.2 - GUIDE_HALF_STROKE, y: vh };
+    const length = Math.hypot(end.x - start.x, end.y - start.y);
+    return { start, end, length };
+  }, [vw, vh]);
+
+  /* ─── Logo / 信封 像素几何 ─── */
+  const logoGeometry = useMemo(() => {
+    const width = vw * LOGO_WIDTH_RATIO;
+    const height = width / LOGO_ASPECT;
+    const cx = vw * LOGO_CENTER_X_RATIO;
+    const cy = vh * LOGO_CENTER_Y_RATIO;
+    return { x: cx - width / 2, y: cy - height / 2, width, height };
+  }, [vw, vh]);
+
+  const envelopeWidth = vw > 0 ? pickEnvelopeWidth(vw) : 0;
+  const envelopeHeight = envelopeWidth * (397 / 595);
 
   // 保持 ref 同步，供异步回调中安全读取
   useEffect(() => {
@@ -220,38 +223,54 @@ export function EnvelopeIntro() {
   useEffect(() => {
     let cancelled = false;
     let frame2: number | undefined;
-    let titleTimer: ReturnType<typeof setTimeout> | undefined;
 
     // 每次挂载（含浏览器前进/后退回到 `/`）都重置开屏态，
     // 让 `locked = !isIntroReady` 在入场动画期间重新成立，
     // 避免上一次会话遗留的 `isIntroReady=true` 直接放行滚动。
     setEnvelopeOpened(false);
     setIntroReady(false);
+    setSweepDone(false);
 
     const runEntry = async () => {
       if (cancelled) return;
-      setPhase('entering');
-      setRibbonRevealed(true);
-
-      // 标题在丝带 clip-path 动画（1400ms）结束后淡入
-      titleTimer = setTimeout(() => {
-        if (!cancelled) setTitleVisible(true);
-      }, 1400);
+      // 阶段一：引导线绘制由独立 effect 监听 `sweepDone` 后衔接阶段二
+      setPhase('sweeping');
 
       if (prefersReducedMotion) {
         envelopeControls.set({ y: 0, opacity: 1, rotateX: 0, rotateZ: 0 });
         if (!cancelled) {
-          setTitleVisible(true);
+          setSweepDone(true);
           setPhase('idle');
           setIntroReady(true);
         }
         return;
       }
+    };
 
-      if (cancelled || phaseRef.current === 'opening') return;
+    const frame1 = requestAnimationFrame(() => {
+      frame2 = requestAnimationFrame(() => {
+        if (!cancelled) runEntry();
+      });
+    });
 
-      // 信封与丝带同时以 Spring 物理弹簧自上方飘落
-      // 从屏幕上方 120% 处下落，带左右摇摆的飘落感
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame1);
+      if (frame2 !== undefined) cancelAnimationFrame(frame2);
+    };
+  }, [envelopeControls, prefersReducedMotion, setEnvelopeOpened, setIntroReady]);
+
+  /* ─── 阶段二：信封 Spring 飘落（仅在阶段一结束后启动） ─── */
+  useEffect(() => {
+    if (!sweepDone) return;
+    if (prefersReducedMotion) return;
+    let cancelled = false;
+
+    const isOpeningPhase = () => (phaseRef.current as Phase) === 'opening';
+    (async () => {
+      if (cancelled || isOpeningPhase()) return;
+      setPhase('entering');
+
       await envelopeControls.start({
         y: 0,
         x: 0,
@@ -267,12 +286,10 @@ export function EnvelopeIntro() {
         },
       });
 
-      // phaseRef.current 可在 await 期间被异步更新为 'opening'
-      if (cancelled || (phaseRef as React.RefObject<Phase>).current === 'opening') return;
+      if (cancelled || isOpeningPhase()) return;
       setPhase('idle');
       setIntroReady(true);
 
-      // 闲置呼吸浮动 — 赋予信封生命感
       envelopeControls.start({
         y: [0, -8, 0],
         rotate: [0, 0.5, 0, -0.5, 0],
@@ -282,22 +299,12 @@ export function EnvelopeIntro() {
           ease: 'easeInOut',
         },
       });
-    };
-
-    // 双层 rAF 确保首帧渲染稳定后再触发动画
-    const frame1 = requestAnimationFrame(() => {
-      frame2 = requestAnimationFrame(() => {
-        if (!cancelled) runEntry();
-      });
-    });
+    })();
 
     return () => {
       cancelled = true;
-      cancelAnimationFrame(frame1);
-      if (frame2 !== undefined) cancelAnimationFrame(frame2);
-      if (titleTimer !== undefined) clearTimeout(titleTimer);
     };
-  }, [envelopeControls, prefersReducedMotion, setEnvelopeOpened, setIntroReady]);
+  }, [sweepDone, envelopeControls, prefersReducedMotion, setIntroReady]);
 
   /* ─── 卸载时置位，供 handleOpen 的 await 链在每个副作用前短路 ───
    * 必须在 setup 阶段显式重置为 false：React Strict Mode（Next.js 16 dev 默认开启）
@@ -346,7 +353,7 @@ export function EnvelopeIntro() {
       opacity: 0,
       transition: {
         duration: 0.7,
-        ease: [0.55, 0, 1, 0.45], // 加速下落
+        ease: [0.55, 0, 1, 0.45],
         opacity: { delay: 0.3, duration: 0.4 },
       },
     });
@@ -366,7 +373,6 @@ export function EnvelopeIntro() {
 
     if (unmountedRef.current) return;
 
-    // 激活过渡遮罩 — 在信纸放大前就显示，防止过渡期间页脚露出
     setTransitioning(true);
 
     const targetScale = calcLetterScale();
@@ -377,7 +383,6 @@ export function EnvelopeIntro() {
         ease: [0.4, 0, 0.2, 1],
       },
     });
-    // 信纸内容同步淡出
     await sleep(900);
 
     if (unmountedRef.current) return;
@@ -393,55 +398,131 @@ export function EnvelopeIntro() {
   const waxSealSizeClass = 'h-[72px] w-[72px] sm:h-[82px] sm:w-[82px] md:h-[92px] md:w-[92px]';
 
   return (
-    <div className="page-paper relative w-full z-50">
+    <div className="relative w-full z-50" style={{ background: FIELD_BASE }}>
       <section className="relative h-screen w-full overflow-hidden">
-        {/* 背景：纯色 #ece9e4 由 page-paper 提供 */}
-
-        {/* 五列网格主布局 */}
-        <div className="relative z-10 grid h-full w-full grid-cols-5 items-center">
-          {/* ── 第1列：丝带 ── */}
+        {/* ───── Base Layer (z=1)：全幅 #ece9e4 + 顶部 #c23643 斜底色块 + 中心 Logo ───── */}
+        <div
+          className="absolute inset-0"
+          aria-hidden
+          style={{ background: FIELD_BASE, zIndex: 1 }}
+        >
           <div
-            className={cn(
-              'hero-ribbon-clip col-start-1 flex h-full items-center justify-end overflow-visible',
-              ribbonRevealed && 'hero-ribbon-revealed'
-            )}
-          >
-            <TwistedRibbon />
-          </div>
-
-          {/* ── 第2列：标题 ── */}
-          <motion.div
-            className="col-start-2 flex items-center justify-end self-center"
-            initial={{ opacity: 0 }}
-            animate={
-              isOpening
-                ? { opacity: 0, y: -40, filter: 'blur(8px)' }
-                : titleVisible
-                  ? { opacity: 1, y: 0, filter: 'blur(0px)' }
-                  : { opacity: 0, y: 0, filter: 'blur(0px)' }
-            }
-            transition={{
-              duration: isOpening ? 0.6 : 0.8,
-              ease: [0.85, 0, 0.15, 1],
+            className="absolute inset-0"
+            style={{
+              background: BLOCK_BASE,
+              clipPath: 'polygon(0 0, 100% 0, 100% 70vh, 0 40vh)',
             }}
-          >
-            <Image
-              alt="与她的海大时光笺"
-              src="/logo.svg"
-              width={27}
-              height={120}
-              className="object-contain"
-              style={{ height: '60vh', width: 'auto' }}
-              priority
+          />
+          {vw > 0 && (
+            <div
+              className="absolute"
+              style={{
+                left: `${LOGO_CENTER_X_RATIO * 100}vw`,
+                top: `${LOGO_CENTER_Y_RATIO * 100}vh`,
+                transform: 'translate(-50%, -50%)',
+                width: `${LOGO_WIDTH_RATIO * 100}vw`,
+                aspectRatio: `${1023.59} / ${396.03}`,
+                backgroundColor: LOGO_COLOR_BASE,
+                WebkitMaskImage: 'url(/logo.svg)',
+                maskImage: 'url(/logo.svg)',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+              }}
             />
-          </motion.div>
+          )}
+        </div>
 
-          {/* ── 第3~5列：信封 ── */}
+        {/* ───── Top Layer (z=2)：与 Base 互换主色，仅在引导线遮罩口内可见 ─────
+         * 整层以 SVG 渲染：色块 / Logo 重新着色 / 遮罩同处一个绘制空间，
+         * 避免 CSS mask + DOM 跨层 z-index 在不同浏览器下的合成差异。*/}
+        {vw > 0 && (
+          <svg
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
+            style={{ zIndex: 2 }}
+            width={vw}
+            height={vh}
+            viewBox={`0 0 ${vw} ${vh}`}
+            preserveAspectRatio="none"
+          >
+            <defs>
+              <mask id={maskId} maskUnits="userSpaceOnUse" x="0" y="0" width={vw} height={vh}>
+                <rect x="0" y="0" width={vw} height={vh} fill="black" />
+                <motion.line
+                  x1={guide.start.x}
+                  y1={guide.start.y}
+                  x2={guide.end.x}
+                  y2={guide.end.y}
+                  stroke="white"
+                  strokeWidth={GUIDE_STROKE_WIDTH}
+                  strokeLinecap="round"
+                  strokeDasharray={guide.length}
+                  initial={{ strokeDashoffset: guide.length }}
+                  animate={{ strokeDashoffset: 0 }}
+                  transition={
+                    prefersReducedMotion
+                      ? { duration: 0 }
+                      : {
+                          duration: SWEEP_DURATION_MS / 1000,
+                          delay: SWEEP_DELAY_MS / 1000,
+                          ease: [0.4, 0, 0.2, 1],
+                        }
+                  }
+                  onAnimationComplete={() => setSweepDone(true)}
+                />
+              </mask>
+              {/*  Top Layer 中 Logo 由 #ece9e4 重着色为 #c23643，
+                * R/G/B 三通道分别取 194/255、54/255、67/255，alpha 通道保留原值。 */}
+              <filter id={recolorId} colorInterpolationFilters="sRGB">
+                <feColorMatrix
+                  type="matrix"
+                  values={`0 0 0 0 ${194 / 255}
+                           0 0 0 0 ${54 / 255}
+                           0 0 0 0 ${67 / 255}
+                           0 0 0 1 0`}
+                />
+              </filter>
+            </defs>
+
+            <g mask={`url(#${maskId})`}>
+              <rect x="0" y="0" width={vw} height={vh} fill={FIELD_TOP} />
+              <polygon
+                points={`0,0 ${vw},0 ${vw},${vh * 0.7} 0,${vh * 0.4}`}
+                fill={BLOCK_TOP}
+              />
+              <image
+                href="/logo.svg"
+                x={logoGeometry.x}
+                y={logoGeometry.y}
+                width={logoGeometry.width}
+                height={logoGeometry.height}
+                preserveAspectRatio="xMidYMid meet"
+                filter={`url(#${recolorId})`}
+              />
+            </g>
+          </svg>
+        )}
+
+        {/* ───── 信封 (z=3)：中心点锚定在 (80vw, 70vh) ───── */}
+        {vw > 0 && (
           <motion.div
-            className="relative col-span-3 col-start-3 mx-auto aspect-[595/397] w-[280px] perspective-1000 sm:w-[360px] md:w-[480px] lg:w-[595px]"
+            className="absolute aspect-[595/397] perspective-1000"
+            style={{
+              zIndex: 3,
+              left: `${ENVELOPE_CENTER_X_RATIO * 100}vw`,
+              top: `${ENVELOPE_CENTER_Y_RATIO * 100}vh`,
+              width: envelopeWidth,
+              height: envelopeHeight,
+              marginLeft: -envelopeWidth / 2,
+              marginTop: -envelopeHeight / 2,
+              transformOrigin: '50% 50%',
+            }}
             initial={{ y: '-120vh', opacity: 0, rotateX: 6, rotateZ: -5 }}
             animate={envelopeControls}
-            style={{ transformOrigin: '50% 50%' }}
           >
             {/* 开信动画容器 */}
             <motion.div
@@ -504,7 +585,6 @@ export function EnvelopeIntro() {
                   transition={{
                     rotateX: { duration: 0.6, ease: 'easeInOut' },
                     translateZ: { delay: 0.15, duration: 0.1 },
-                    // 在翻转至 ~90° 时同步切换 zIndex，使翻盖在越过信纸（z-10）后立即回落
                     zIndex: { delay: 0.15, duration: 0, type: 'tween' },
                   }}
                 >
@@ -567,11 +647,15 @@ export function EnvelopeIntro() {
               </motion.div>
             </motion.div>
           </motion.div>
-        </div>
+        )}
 
         {/* 点击提示 — 呼吸闪烁 (定位在信封正下方，水平对齐信封中心) */}
         <motion.p
-          className="absolute bottom-[3%] left-[70%] z-10 -translate-x-1/2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
+          className="absolute z-10 -translate-x-1/2 text-center font-serif text-[11px] tracking-[0.22em] text-muted-foreground/70 md:text-sm"
+          style={{
+            left: `${ENVELOPE_CENTER_X_RATIO * 100}vw`,
+            bottom: '3%',
+          }}
           initial={{ opacity: 0, y: 6 }}
           animate={
             isIdle
