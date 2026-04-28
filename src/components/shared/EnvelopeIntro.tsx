@@ -108,9 +108,9 @@ const LOGO_COLOR_BASE = '#ece9e4';
 const GUIDE_STROKE_WIDTH = 100;
 const GUIDE_HALF_STROKE = GUIDE_STROKE_WIDTH / 2;
 
-// Logo 几何：left=35vw（左边缘）、width=50vw、垂直中心 35vh
-// 用户调整：从「网格中心锚定」改为「左边缘锚定」，使横版 Logo 更贴近左边缘并更显宽。
-const LOGO_LEFT_RATIO = 0.35;
+// Logo 几何：CSS `left: 35vw; top: 35vh; width: 50vw;` + transform: translate(-50%, -50%)
+// 即 Logo 中心锚定在 (35vw, 35vh)；宽 50vw（高随 1023.59/396.03 自适应）。
+const LOGO_CENTER_X_RATIO = 0.35;
 const LOGO_CENTER_Y_RATIO = 0.35;
 const LOGO_WIDTH_RATIO = 0.5;
 const LOGO_ASPECT = 1023.59 / 396.03;
@@ -195,24 +195,18 @@ export function EnvelopeIntro() {
   const recolorId = `intro-logo-recolor-${reactId.replace(/:/g, '')}`;
 
   /* ─── 引导线几何 ───
-   * 使用 polyline 而非单段直线：最末段强制竖直（与下方 `GuideLine` 第一段同向同宽），
-   * 从而让开屏页扫动遮罩与下方红色引导线在视口底边 (20vw - 50px, 100vh) 处
-   * 以等宽 100px 竖直 stroke 衔接，消除「斜向带」与「竖向带」之间的台阶。
-   * - 段一：(60vw, 0) → 拐点 (ribbonX, 0.9 × 100vh)
-   * - 段二：拐点 → (ribbonX, 100vh)
+   * 单段直线，从顶边 (60vw, 0) 一路斜向到视口底边 (20vw - 50px, 100vh)。
+   * 不在视口内做任何拐弯——开屏页内不出现折线视觉。
    */
   const guide = useMemo(() => {
     const startX = vw * 0.6;
     const endX = vw * 0.2 - GUIDE_HALF_STROKE;
-    const kinkY = vh * 0.9;
-    const seg1 = Math.hypot(endX - startX, kinkY - 0);
-    const seg2 = vh - kinkY;
+    const length = Math.hypot(endX - startX, vh);
     return {
       start: { x: startX, y: 0 },
-      kink: { x: endX, y: kinkY },
       end: { x: endX, y: vh },
-      length: seg1 + seg2,
-      d: `M ${startX} 0 L ${endX} ${kinkY} L ${endX} ${vh}`,
+      length,
+      d: `M ${startX} 0 L ${endX} ${vh}`,
     };
   }, [vw, vh]);
 
@@ -220,9 +214,9 @@ export function EnvelopeIntro() {
   const logoGeometry = useMemo(() => {
     const width = vw * LOGO_WIDTH_RATIO;
     const height = width / LOGO_ASPECT;
-    const x = vw * LOGO_LEFT_RATIO;
+    const cx = vw * LOGO_CENTER_X_RATIO;
     const cy = vh * LOGO_CENTER_Y_RATIO;
-    return { x, y: cy - height / 2, width, height };
+    return { x: cx - width / 2, y: cy - height / 2, width, height };
   }, [vw, vh]);
 
   const envelopeWidth = vw > 0 ? pickEnvelopeWidth(vw) : 0;
@@ -431,8 +425,9 @@ export function EnvelopeIntro() {
             <div
               className="absolute"
               style={{
-                left: `${LOGO_LEFT_RATIO * 100}vw`,
-                top: `calc(${LOGO_CENTER_Y_RATIO * 100}vh - ${vw * LOGO_WIDTH_RATIO / LOGO_ASPECT / 2}px)`,
+                left: `${LOGO_CENTER_X_RATIO * 100}vw`,
+                top: `${LOGO_CENTER_Y_RATIO * 100}vh`,
+                transform: 'translate(-50%, -50%)',
                 width: `${LOGO_WIDTH_RATIO * 100}vw`,
                 aspectRatio: `${1023.59} / ${396.03}`,
                 backgroundColor: LOGO_COLOR_BASE,
