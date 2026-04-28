@@ -149,10 +149,10 @@ export function GlobalNav() {
       >
         <LayoutGroup id="global-nav">
           <ul
-            className="relative flex flex-col items-stretch rounded-full border backdrop-blur-md shadow-sm"
+            className="relative flex flex-col items-stretch rounded-full border shadow-sm"
             style={{
               borderColor: '#c23643',
-              background: 'rgba(246, 241, 235, 0.55)',
+              background: 'var(--neutral-light)',
               width: '4vw',
               minWidth: 44,
               maxWidth: 64,
