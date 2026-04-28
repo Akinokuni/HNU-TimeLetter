@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  AnimatePresence,
   LayoutGroup,
   motion,
   useReducedMotion,
@@ -19,9 +17,8 @@ import { useAppStore } from '@/lib/store';
  * 服务于「主页 / 地图 / 公示板」三个顶层视觉阶段之间的切换。
  *
  * 堆叠关系（由下至上）：
- *   页面内容 → CustomScrollbar (z-1000) → 红色背景块 → 胶囊
- * 外层容器 z-[1100]，高于滑块轨道；红色背景块 z-0，胶囊 z-10，
- * 确保视觉上红色背景包裹胶囊、胶囊悬浮其上，而非二者并排。
+ *   页面内容 → CustomScrollbar (z-1000) → 胶囊
+ * 外层容器 z-[1100]，高于滑块轨道；胶囊 z-10。
  *
  * 视觉规格参见 `docs/design/交互设计.md#1.4 全局导航栏`。
  */
@@ -39,16 +36,6 @@ export function GlobalNav() {
   const router = useRouter();
   const { setEnvelopeOpened, setIntroReady } = useAppStore();
   const shouldReduceMotion = useReducedMotion();
-  const [scrolled, setScrolled] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const onScroll = () => setScrolled(window.scrollY > 1);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   // 不在后台管理路由下渲染
   if (pathname?.startsWith('/admin')) return null;
@@ -63,10 +50,6 @@ export function GlobalNav() {
       : pathname === '/map'
         ? 'map'
         : 'home';
-
-  const isHome = pathname === '/';
-  // 开屏态：首页且页面未滚动时，显示紧贴视口右上角的红色背景块
-  const showHomeBlock = mounted && isHome && !scrolled;
 
   const handleClick = (key: NavKey) => {
     if (key === 'board') {
@@ -93,9 +76,6 @@ export function GlobalNav() {
   const pillTransition: Transition = shouldReduceMotion
     ? { duration: 0 }
     : { type: 'spring', stiffness: 420, damping: 38 };
-  const blockTransition: Transition = shouldReduceMotion
-    ? { duration: 0 }
-    : { duration: 0.45, ease: 'easeInOut' };
 
   return (
     <div
@@ -108,37 +88,7 @@ export function GlobalNav() {
       }}
       aria-label="全局导航"
     >
-      {/* 红色背景块：首页开屏态专属；z-0，位于胶囊下层，包裹胶囊外轮廓。
-          `initial={false}` —— 首次进入开屏不播淡入，仅在滚动/回滚时做淡出淡入。
-          圆角与胶囊 rounded-full 等比放大（radius ≈ width/2），高度收敛以减少视觉占用。*/}
-      <AnimatePresence initial={false}>
-        {showHomeBlock && (
-          <motion.div
-            key="home-block"
-            aria-hidden
-            className="absolute top-0 right-0 pointer-events-none"
-            style={{
-              width: '7vw',
-              minWidth: 80,
-              maxWidth: 128,
-              height: '28vh',
-              minHeight: 200,
-              maxHeight: 320,
-              background: '#c23643',
-              borderBottomLeftRadius: '3.5vw',
-              // 右上角跟随画框内圆角（16px），与画框内缘严丝合缝
-              borderTopRightRadius: 'var(--site-frame-radius)',
-              zIndex: 0,
-            }}
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={blockTransition}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* 胶囊：较窄(~4vw)，top 留 2.5vh 以显红色包裹感，right 贴视口更紧 */}
+      {/* 胶囊：较窄(~4vw)，top 留 2.5vh，right 贴视口更紧 */}
       <div
         className="pointer-events-auto absolute"
         style={{

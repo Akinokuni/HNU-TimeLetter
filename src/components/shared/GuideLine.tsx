@@ -13,7 +13,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  * - 非可逆单向线性插值：向下滚动时正向曝光，向上回滚时冻结在历史最远端
  *
  * 路径坐标（相对占比）：
- *   关于企划页：P1(ribbonX,0%) → P2(ribbonX,10%) → P3(19.15%,12.5%) → P4(107.5%,40.43%)
+ *   关于企划页：P1(ribbonX,0%) → P_bend(沿开屏页斜率延伸) → P4(107.5%,40.43%)
  *   鸣谢页：    P5(-2.19%,65.40%) → P6(32%,97%)
  *
  * 衔接细节：
@@ -21,6 +21,9 @@ import { useEffect, useRef, useCallback, useState } from 'react';
  *    因此用户刚开始下滑即可看到引导线从丝带下方伸出，无"空走"。
  *  - ribbonX 使用 20%vw - 50px 动态计算（对应丝带 100px 宽容器 + col-start-1 justify-end），
  *    保证在所有屏幕尺寸下都与丝带中心精确对齐。
+ *  - P1→P_bend 段沿用开屏页引导线 (60vw,0)→(20vw-50,100vh) 的斜率，
+ *    这样开屏页底边的扫动直线和 GuideLine 第一段视觉上是同一根直线，
+ *    在交界线（首屏底）严丝合缝，整段「关于企划」内只有一次拐弯（在 P_bend）。
  *  - P4→P5 是跨越"关于我们"整个页面的连续折线段。
  *
  * 渲染区域裁剪（关键）：
@@ -102,11 +105,27 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const ribbonX = vw * 0.2 - 50;
 
     // 计算路径各点的像素坐标（相对于 ScrollSections 容器）
-    // P1: 丝带正下方、首屏底边 —— 路径起点。这样微量下滑即可立即看到引导线从丝带底部伸出。
-    const p1 = { x: ribbonX, y: apTop };
-    // P2: 竖直段下延至 10% apH —— 留出明显的一段"先竖直再转弯"
-    const p2 = { x: ribbonX, y: apTop + apH * 0.10 };
-    const p3 = { x: vw * 0.1915, y: apTop + apH * 0.125 };
+    // P1: 沿开屏页扫动线斜率从「丝带下方、首屏底边」再向上外延 GUIDE_OVERSHOOT 像素，
+    //   把 stroke 起点推到首屏底边（= ScrollSections 容器顶边）之上的开屏页区域。
+    //   开屏页 section 自身 z-index 更高，外延部分被开屏页遮挡，不影响视觉；
+    //   但能保证视口跨过交界线时，下方斜带与开屏页扫动线在交界线上严丝合缝
+    //   （没有「先看到 GuideLine 端点圆角，再看到下一段」的台阶）。
+    const introDx = vw * 0.2 - 50 - vw * 0.6; // = -vw*0.4 - 50
+    const introDy = window.innerHeight;
+    const introHypot = Math.hypot(introDx, introDy);
+    const introUx = introHypot === 0 ? 0 : introDx / introHypot;
+    const introUy = introHypot === 0 ? 1 : introDy / introHypot;
+    const GUIDE_OVERSHOOT = 60;
+    const p1 = {
+      x: ribbonX - introUx * GUIDE_OVERSHOOT,
+      y: apTop - introUy * GUIDE_OVERSHOOT,
+    };
+    // P_bend: 沿开屏页扫动线 (60vw,0)→(20vw-50,100vh) 的斜率从交界线 (ribbonX, apTop)
+    //   继续延伸 10% apH。GuideLine 首段沿同一方向延伸 → 与开屏页扫动线视觉上为
+    //   同一根直线。整个「关于企划」section 内只有 P_bend 一次拐弯。
+    const bendDy = apH * 0.10;
+    const bendDx = (introDx / introDy) * bendDy;
+    const pBend = { x: ribbonX + bendDx, y: apTop + bendDy };
     const p4 = { x: vw * 1.075, y: apTop + apH * 0.4043 };
     // P5 在鸣谢页（跨越了关于我们页面）
     const p5 = { x: vw * -0.0219, y: crTop + crH * 0.654 };
@@ -134,17 +153,15 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     });
 
     const lp1 = toLocal(p1);
-    const lp2 = toLocal(p2);
-    const lp3 = toLocal(p3);
+    const lpBend = toLocal(pBend);
     const lp4 = toLocal(p4);
     const lp5 = toLocal(p5);
     const lp6 = toLocal(p6);
 
-    // 一条完整连续折线：P1→P2→P3→P4→P5→P6
+    // 一条完整连续折线：P1→P_bend→P4→P5→P6（关于企划内仅 P_bend 一次拐弯）
     const d = [
       `M ${lp1.x} ${lp1.y}`,
-      `L ${lp2.x} ${lp2.y}`,
-      `L ${lp3.x} ${lp3.y}`,
+      `L ${lpBend.x} ${lpBend.y}`,
       `L ${lp4.x} ${lp4.y}`,
       `L ${lp5.x} ${lp5.y}`,
       `L ${lp6.x} ${lp6.y}`,
@@ -154,7 +171,7 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     // 使用真实几何（不 clamp y1）：drawn 终点精确落在 refY 对应的路径点上。
     // svgBottom（= 鸣谢底 = 交界线）由 animate() 里做 snap：一旦 refY >= svgBottom
     // 就强制 progress = 1；视觉上这一跳被蒙版遮住（新画的 80px 都在蒙版下）。
-    const pts = [p1, p2, p3, p4, p5, p6];
+    const pts = [p1, pBend, p4, p5, p6];
     const segs: PathSegment[] = [];
     let cum = 0;
     for (let i = 0; i < pts.length - 1; i++) {

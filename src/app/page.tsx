@@ -48,11 +48,10 @@ export default function Home() {
     }
   }, [mounted, isIntroReady]);
 
-  if (!mounted) {
-    return (
-      <div className="page-paper fixed inset-0" />
-    );
-  }
+  // 首渲即输出完整组件树（含 EnvelopeIntro / ScrollSections / Footer）——
+  // EnvelopeIntro 内部 SSR 即输出 Base Layer (cream + #c23643 polygon clip-path)，
+  // 保证大斜底色块从首帧即在，避免 hydration 时刻才挂载导致闪屏。
+  // Top Layer / 信封 / Lenis 等需要 viewport 的部分由各自的 `vw > 0` / `mounted` 自门控。
 
   return (
     <main className="relative w-full min-h-screen">
