@@ -532,7 +532,7 @@ export function EnvelopeIntro() {
                   fill="none"
                   stroke="white"
                   strokeWidth={GUIDE_STROKE_WIDTH}
-                  strokeLinecap="butt"
+                  strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeDasharray={guide.length}
                   initial={{ strokeDashoffset: guide.length }}
