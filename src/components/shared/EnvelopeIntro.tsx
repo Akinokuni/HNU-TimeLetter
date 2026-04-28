@@ -107,6 +107,10 @@ const LOGO_COLOR_BASE = '#ece9e4';
 // 引导线宽度（像素）
 const GUIDE_STROKE_WIDTH = 100;
 const GUIDE_HALF_STROKE = GUIDE_STROKE_WIDTH / 2;
+// 引导线两端外延：起点沿斜率向左上延出视口、终点沿斜率向右下延出视口；
+// 配合 strokeLinecap="butt" 让 butt 直角端点落在 SVG viewBox 外被默认裁剪掉，
+// 视口内的可视部分始终是齐整的 100px 宽斜带，与下方 GuideLine 严丝合缝。
+const GUIDE_OVERSHOOT = 60;
 
 // Logo 几何：CSS `left: 35vw; top: 35vh; width: 50vw;` + transform: translate(-50%, -50%)
 // 即 Logo 中心锚定在 (35vw, 35vh)；宽 50vw（高随 1023.59/396.03 自适应）。
@@ -201,16 +205,36 @@ export function EnvelopeIntro() {
   /* ─── 引导线几何 ───
    * 单段直线，从顶边 (60vw, 0) 一路斜向到视口底边 (20vw - 50px, 100vh)。
    * 不在视口内做任何拐弯——开屏页内不出现折线视觉。
+   * 起点 / 终点都沿斜率方向再外延 GUIDE_OVERSHOOT 像素到视口外，
+   * 让 butt 直角端点落在 SVG viewBox 之外（默认被裁剪），
+   * 视口里只看到齐整的 100px 宽斜带。
    */
   const guide = useMemo(() => {
-    const startX = vw * 0.6;
-    const endX = vw * 0.2 - GUIDE_HALF_STROKE;
-    const length = Math.hypot(endX - startX, vh);
+    const startX0 = vw * 0.6;
+    const endX0 = vw * 0.2 - GUIDE_HALF_STROKE;
+    const dx = endX0 - startX0;
+    const dy = vh;
+    const baseLen = Math.hypot(dx, dy);
+    if (baseLen === 0) {
+      return {
+        start: { x: startX0, y: 0 },
+        end: { x: endX0, y: vh },
+        length: 0,
+        d: `M ${startX0} 0 L ${endX0} ${vh}`,
+      };
+    }
+    const ux = dx / baseLen;
+    const uy = dy / baseLen;
+    const startX = startX0 - ux * GUIDE_OVERSHOOT;
+    const startY = 0 - uy * GUIDE_OVERSHOOT;
+    const endX = endX0 + ux * GUIDE_OVERSHOOT;
+    const endY = vh + uy * GUIDE_OVERSHOOT;
+    const length = Math.hypot(endX - startX, endY - startY);
     return {
-      start: { x: startX, y: 0 },
-      end: { x: endX, y: vh },
+      start: { x: startX, y: startY },
+      end: { x: endX, y: endY },
       length,
-      d: `M ${startX} 0 L ${endX} ${vh}`,
+      d: `M ${startX} ${startY} L ${endX} ${endY}`,
     };
   }, [vw, vh]);
 

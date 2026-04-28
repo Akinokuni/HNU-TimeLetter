@@ -105,15 +105,24 @@ export function GuideLine({ sectionRefs }: GuideLineProps) {
     const ribbonX = vw * 0.2 - 50;
 
     // 计算路径各点的像素坐标（相对于 ScrollSections 容器）
-    // P1: 丝带正下方、首屏底边 —— 路径起点。这样微量下滑即可立即看到引导线从丝带底部伸出。
-    const p1 = { x: ribbonX, y: apTop };
-    // P_bend: 沿开屏页扫动线 (60vw,0)→(20vw-50,100vh) 的斜率从 P1 继续延伸 10% apH。
-    //   开屏页结束在 (20vw-50, 100vh) 的方向向量是 (-vw*0.4 - 50, vh)，
-    //   GuideLine 首段沿同一方向延伸 → 与开屏页扫动线视觉上为同一根直线，
-    //   在 apTop 这条交界线上严丝合缝。
-    //   整个「关于企划」section 内只有 P_bend 一次拐弯（P1→P_bend 单一斜段）。
+    // P1: 沿开屏页扫动线斜率从「丝带下方、首屏底边」再向上外延 GUIDE_OVERSHOOT 像素，
+    //   把 stroke 起点推到首屏底边（= ScrollSections 容器顶边）之上的开屏页区域。
+    //   开屏页 section 自身 z-index 更高，外延部分被开屏页遮挡，不影响视觉；
+    //   但能保证视口跨过交界线时，下方斜带与开屏页扫动线在交界线上严丝合缝
+    //   （没有「先看到 GuideLine 端点圆角，再看到下一段」的台阶）。
     const introDx = vw * 0.2 - 50 - vw * 0.6; // = -vw*0.4 - 50
     const introDy = window.innerHeight;
+    const introHypot = Math.hypot(introDx, introDy);
+    const introUx = introHypot === 0 ? 0 : introDx / introHypot;
+    const introUy = introHypot === 0 ? 1 : introDy / introHypot;
+    const GUIDE_OVERSHOOT = 60;
+    const p1 = {
+      x: ribbonX - introUx * GUIDE_OVERSHOOT,
+      y: apTop - introUy * GUIDE_OVERSHOOT,
+    };
+    // P_bend: 沿开屏页扫动线 (60vw,0)→(20vw-50,100vh) 的斜率从交界线 (ribbonX, apTop)
+    //   继续延伸 10% apH。GuideLine 首段沿同一方向延伸 → 与开屏页扫动线视觉上为
+    //   同一根直线。整个「关于企划」section 内只有 P_bend 一次拐弯。
     const bendDy = apH * 0.10;
     const bendDx = (introDx / introDy) * bendDy;
     const pBend = { x: ribbonX + bendDx, y: apTop + bendDy };
