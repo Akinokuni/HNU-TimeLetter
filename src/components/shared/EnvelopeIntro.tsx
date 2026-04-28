@@ -191,8 +191,12 @@ export function EnvelopeIntro() {
 
   const { w: vw, h: vh } = useViewportSize();
   const reactId = useId();
-  const maskId = `intro-guide-mask-${reactId.replace(/:/g, '')}`;
-  const recolorId = `intro-logo-recolor-${reactId.replace(/:/g, '')}`;
+  const cleanId = reactId.replace(/:/g, '');
+  const maskId = `intro-guide-mask-${cleanId}`;
+  const recolorRedId = `intro-logo-recolor-red-${cleanId}`;
+  const recolorCreamId = `intro-logo-recolor-cream-${cleanId}`;
+  const clipTopId = `intro-clip-top-${cleanId}`;
+  const clipBottomId = `intro-clip-bottom-${cleanId}`;
 
   /* ─── 引导线几何 ───
    * 单段直线，从顶边 (60vw, 0) 一路斜向到视口底边 (20vw - 50px, 100vh)。
@@ -421,7 +425,16 @@ export function EnvelopeIntro() {
               clipPath: 'polygon(0 0, 100% 0, 100% 70vh, 0 40vh)',
             }}
           />
-          {vw > 0 && (
+          {/* 奶白 Logo：仅在“顶部斜底色块”（#c23643 区）可见。
+              clip-path 与斜底色块使用同一多边形 —— Logo 越过分界线的部分被切掉，
+              不会出现「奶白 其字落在奶白底上」的隐形。纯 CSS，首帧即可见。 */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden
+            style={{
+              clipPath: 'polygon(0 0, 100% 0, 100% 70vh, 0 40vh)',
+            }}
+          >
             <div
               className="absolute"
               style={{
@@ -441,7 +454,37 @@ export function EnvelopeIntro() {
                 maskPosition: 'center',
               }}
             />
-          )}
+          </div>
+
+          {/* 红色 Logo：仅在「奶白底区」（斜底色块补集）可见。补足用户反馈中
+              「海字走到奶白区会消失」的问题——越界部分以红色呈现与奶白底形成对比。 */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            aria-hidden
+            style={{
+              clipPath: 'polygon(0 40vh, 100% 70vh, 100% 100%, 0 100%)',
+            }}
+          >
+            <div
+              className="absolute"
+              style={{
+                left: `${LOGO_CENTER_X_RATIO * 100}vw`,
+                top: `${LOGO_CENTER_Y_RATIO * 100}vh`,
+                transform: 'translate(-50%, -50%)',
+                width: `${LOGO_WIDTH_RATIO * 100}vw`,
+                aspectRatio: `${1023.59} / ${396.03}`,
+                backgroundColor: BLOCK_BASE,
+                WebkitMaskImage: 'url(/logo.svg)',
+                maskImage: 'url(/logo.svg)',
+                WebkitMaskRepeat: 'no-repeat',
+                maskRepeat: 'no-repeat',
+                WebkitMaskSize: 'contain',
+                maskSize: 'contain',
+                WebkitMaskPosition: 'center',
+                maskPosition: 'center',
+              }}
+            />
+          </div>
         </div>
 
         {/* ───── Top Layer (z=2)：与 Base 互换主色，仅在引导线遮罩口内可见 ─────
@@ -465,7 +508,7 @@ export function EnvelopeIntro() {
                   fill="none"
                   stroke="white"
                   strokeWidth={GUIDE_STROKE_WIDTH}
-                  strokeLinecap="round"
+                  strokeLinecap="butt"
                   strokeLinejoin="round"
                   strokeDasharray={guide.length}
                   initial={{ strokeDashoffset: guide.length }}
@@ -482,9 +525,10 @@ export function EnvelopeIntro() {
                   onAnimationComplete={() => setSweepDone(true)}
                 />
               </mask>
-              {/*  Top Layer 中 Logo 由 #ece9e4 重着色为 #c23643，
-                * R/G/B 三通道分别取 194/255、54/255、67/255，alpha 通道保留原值。 */}
-              <filter id={recolorId} colorInterpolationFilters="sRGB">
+              {/* Top Layer Logo 重着色：红、奶白两套。
+                * - 顶半（原本是红底色块，Top Layer 裸露为奶白）→ Logo 需以红色呈现
+                * - 底半（原本是奶白底，Top Layer 裸露为红色）→ Logo 需以奶白呈现 */}
+              <filter id={recolorRedId} colorInterpolationFilters="sRGB">
                 <feColorMatrix
                   type="matrix"
                   values={`0 0 0 0 ${194 / 255}
@@ -493,6 +537,22 @@ export function EnvelopeIntro() {
                            0 0 0 1 0`}
                 />
               </filter>
+              <filter id={recolorCreamId} colorInterpolationFilters="sRGB">
+                <feColorMatrix
+                  type="matrix"
+                  values={`0 0 0 0 ${236 / 255}
+                           0 0 0 0 ${233 / 255}
+                           0 0 0 0 ${228 / 255}
+                           0 0 0 1 0`}
+                />
+              </filter>
+              {/* clip-path：与 Base Layer 斜底色块 polygon 严格一致 */}
+              <clipPath id={clipTopId}>
+                <polygon points={`0,0 ${vw},0 ${vw},${vh * 0.7} 0,${vh * 0.4}`} />
+              </clipPath>
+              <clipPath id={clipBottomId}>
+                <polygon points={`0,${vh * 0.4} ${vw},${vh * 0.7} ${vw},${vh} 0,${vh}`} />
+              </clipPath>
             </defs>
 
             <g mask={`url(#${maskId})`}>
@@ -501,15 +561,30 @@ export function EnvelopeIntro() {
                 points={`0,0 ${vw},0 ${vw},${vh * 0.7} 0,${vh * 0.4}`}
                 fill={BLOCK_TOP}
               />
-              <image
-                href="/logo.svg"
-                x={logoGeometry.x}
-                y={logoGeometry.y}
-                width={logoGeometry.width}
-                height={logoGeometry.height}
-                preserveAspectRatio="xMidYMid meet"
-                filter={`url(#${recolorId})`}
-              />
+              {/* 顶半红色 Logo */}
+              <g clipPath={`url(#${clipTopId})`}>
+                <image
+                  href="/logo.svg"
+                  x={logoGeometry.x}
+                  y={logoGeometry.y}
+                  width={logoGeometry.width}
+                  height={logoGeometry.height}
+                  preserveAspectRatio="xMidYMid meet"
+                  filter={`url(#${recolorRedId})`}
+                />
+              </g>
+              {/* 底半奶白 Logo */}
+              <g clipPath={`url(#${clipBottomId})`}>
+                <image
+                  href="/logo.svg"
+                  x={logoGeometry.x}
+                  y={logoGeometry.y}
+                  width={logoGeometry.width}
+                  height={logoGeometry.height}
+                  preserveAspectRatio="xMidYMid meet"
+                  filter={`url(#${recolorCreamId})`}
+                />
+              </g>
             </g>
           </svg>
         )}
