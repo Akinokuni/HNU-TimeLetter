@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import data from '@/data/content.json';
 import type { Story } from '@/lib/types';
 import { flattenStoriesWithLocationName, getStoryAvatarUrl, getStoryMainImageUrl } from '@/lib/content';
@@ -16,12 +16,18 @@ interface StoryFeedProps {
  * 包含缩略图、角色名和地点信息
  */
 function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.div
       layoutId={`story-card-${story.id}`}
+      variants={{
+        hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
+        show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+      }}
       className="flex flex-col bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden cursor-pointer"
       onClick={onClick}
-      whileTap={{ scale: 0.96 }}
+      whileTap={shouldReduceMotion ? {} : { scale: 0.96 }}
     >
       <div className="relative w-full aspect-[4/5] bg-stone-100">
         <motion.div
@@ -72,7 +78,18 @@ export function StoryFeed({ onStoryClick }: StoryFeedProps) {
 
   return (
     <div className="w-full px-4 py-6 overflow-y-auto h-full scrollbar-hide">
-      <div className="grid grid-cols-2 gap-4">
+      <motion.div 
+        className="grid grid-cols-2 gap-4"
+        initial="hidden"
+        animate="show"
+        variants={{
+          hidden: { opacity: 0 },
+          show: {
+            opacity: 1,
+            transition: { staggerChildren: 0.06 }
+          }
+        }}
+      >
         {allStories.map((story) => (
           <StoryCard 
             key={story.id} 
@@ -80,7 +97,7 @@ export function StoryFeed({ onStoryClick }: StoryFeedProps) {
             onClick={() => onStoryClick(story)} 
           />
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

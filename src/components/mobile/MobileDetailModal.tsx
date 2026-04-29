@@ -139,21 +139,25 @@ export function MobileDetailModal({
           ref={scrollRef}
           className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col"
         >
-          {/* 图片区域 */}
-          <div className="relative w-full aspect-[4/5] flex-shrink-0 bg-stone-200">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={story.id}
-                layoutId={`story-img-${story.id}`} // 关键修复：添加 layoutId
-                className="absolute inset-0"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Image src={getStoryMainImageUrl(story)} alt={story.characterName} fill className="object-cover" priority sizes="100vw" />
-              </motion.div>
-            </AnimatePresence>
+          {/* 图片区域 - 移除强制比例，改为让内部自由撑开并且去掉了背景色 */}
+          <div className="relative w-full flex-shrink-0">
+            <motion.div
+              key={`img-wrap-${story.id}`}
+              layoutId={`story-img-${story.id}`} 
+              className="relative w-full"
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            >
+              {/* 改用标准 Image + width/height 自动撑开，而不是 absolute fill */}
+              <Image 
+                src={getStoryMainImageUrl(story)} 
+                alt={story.characterName} 
+                width={1200}
+                height={1200}
+                className="w-full h-auto object-contain" 
+                priority 
+                sizes="100vw" 
+              />
+            </motion.div>
 
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent pointer-events-none" />
 
