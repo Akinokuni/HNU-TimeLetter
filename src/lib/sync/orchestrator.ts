@@ -36,6 +36,7 @@ type ExecutionState = {
   locationCount?: number;
   storyCount?: number;
   creationIdeaCount?: number;
+  contributorCount?: number;
   filesWritten: Set<string>;
   warnings: string[];
   errors: string[];
@@ -209,6 +210,10 @@ function mergeStepSummary(
     state.creationIdeaCount = summary.creationIdeaCount;
   }
 
+  if (typeof summary.contributorCount === 'number') {
+    state.contributorCount = summary.contributorCount;
+  }
+
   const filesWritten = summary.filesWritten ?? [];
   filesWritten.forEach((filePath) => state.filesWritten.add(filePath));
 }
@@ -232,6 +237,10 @@ function buildJobSummary(state: ExecutionState) {
 
   if (state.creationIdeaCount !== undefined) {
     summary.creationIdeaCount = state.creationIdeaCount;
+  }
+
+  if (state.contributorCount !== undefined) {
+    summary.contributorCount = state.contributorCount;
   }
 
   return summary;

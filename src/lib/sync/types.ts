@@ -5,7 +5,7 @@ export type DataPublishMode = 'build_time' | 'runtime_api';
 
 export type SyncJobKind = 'sync-data' | 'sync-data-and-publish';
 
-export type SyncTableKey = 'locations' | 'stories' | 'creation_board';
+export type SyncTableKey = 'locations' | 'stories' | 'creation_board' | 'contributors';
 
 export type DependencyMode = 'read_local' | 'run_dependencies' | 'strict';
 
@@ -116,6 +116,7 @@ export interface SyncEnvironmentSettings {
   feishuCreationViewId?: string;
   feishuOssTableId?: string;
   feishuLocationsTableId?: string;
+  feishuContributorsTableId?: string;
   ossRegion?: string;
   ossBucket?: string;
   ossAccessKeyId?: string;
@@ -179,6 +180,7 @@ export interface SyncTableOutputMap {
   locations: LocationCoords;
   stories: LocationPoint[];
   creation_board: CreationIdea[];
+  contributors: import('../types').Contributor[];
 }
 
 export interface SyncContext {

@@ -57,6 +57,14 @@ export interface LocationPoint {
   stories: Story[];       // 该地点包含的所有故事
 }
 
+// 鸣谢实体 (对应飞书参与贡献名单)
+export interface Contributor {
+  id: string;
+  name: string;
+  role?: string;
+  message?: string;
+}
+
 // 飞书 API 响应类型 (用于同步脚本)
 export interface FeishuRecord {
   record_id: string;

@@ -22,45 +22,59 @@ import { motion, useInView } from 'framer-motion';
  *     沿 P4→P5 方向退让首段行首，避免在窄视口下擦边。
  */
 
-// 占位昵称列表（待填充真实数据）
-const CONTRIBUTOR_ROWS: string[][] = [
-  ['幽兰', '星河', '白鹿', '月影', '清风', '朝露', '映雪', '听雨', '落霞', '浮生', '若梦', '长安'],
-  ['拾光', '念初', '执念', '画眉', '流年', '素心', '晚晴', '云烟', '梨落', '墨染', '知秋', '踏歌'],
-  ['余温', '故里', '北辰', '西窗', '南歌', '东篱', '初雪', '暮色', '半夏', '微凉', '轻吟', '浅笑'],
-];
+import contributorsData from '@/data/contributors.json';
+import type { Contributor } from '@/lib/types';
+
+// 将 contributors 平分到 3 行中
+const contributors = contributorsData.contributors as Contributor[];
+const rowCount = 3;
+const CONTRIBUTOR_ROWS: Contributor[][] = Array.from({ length: rowCount }, () => []);
+
+contributors.forEach((contributor, index) => {
+  CONTRIBUTOR_ROWS[index % rowCount].push(contributor);
+});
 
 function MarqueeRow({
-  names,
+  items,
   speed = 30,
   reverse = false,
 }: {
-  names: string[];
+  items: Contributor[];
   speed?: number;
   reverse?: boolean;
 }) {
-  // 复制一份实现无缝循环
-  const doubled = [...names, ...names];
-  const duration = names.length * speed / 10;
+  if (!items || items.length === 0) return null;
+
+  // 复制 20 份实现无尽的轨道铺排（确保就算是只有几个名字，也能完全铺满屏幕）
+  // 只要是偶数份，跑马灯 -50% 的位移就能保证正好无缝衔接回起点
+  const copies = 20;
+  const multiplied = Array.from({ length: copies }).flatMap(() => items);
+  
+  // 因为现在滚动距离变长了（位移了 10 组原始距），为了维持“恒定视觉速度”，时间也要对应放大
+  const shiftMultiplier = copies / 2;
+  // 大幅降低基础速度。使用 15 倍的基数，让动画变得像电影谢幕一样极度缓慢
+  const duration = Math.max(items.length * shiftMultiplier * speed * 0.5, 60);
 
   return (
-    <div className="relative overflow-hidden whitespace-nowrap py-3">
+    <div className="relative overflow-hidden whitespace-nowrap py-3 w-full">
       <motion.div
         className="inline-flex gap-8"
         animate={{ x: reverse ? ['0%', '-50%'] : ['-50%', '0%'] }}
         transition={{
           x: {
-            duration,
+            duration: duration,
             repeat: Infinity,
             ease: 'linear',
           },
         }}
       >
-        {doubled.map((name, i) => (
+        {multiplied.map((item, i) => (
           <span
-            key={`${name}-${i}`}
+            key={`${item.id}-${i}`}
             className="text-ink-muted text-sm md:text-base font-sans tracking-widest opacity-60 hover:opacity-100 transition-opacity"
+            title={item.message || item.role || item.name}
           >
-            {name}
+            {item.name}
           </span>
         ))}
       </motion.div>
@@ -114,7 +128,7 @@ export function Credits() {
             {CONTRIBUTOR_ROWS.map((row, i) => (
               <MarqueeRow
                 key={i}
-                names={row}
+                items={row}
                 speed={25 + i * 8}
                 reverse={i % 2 === 1}
               />

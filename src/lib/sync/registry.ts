@@ -6,6 +6,7 @@ import type {
 import { creationBoardModule } from './tables/creation-board.module';
 import { locationsModule } from './tables/locations.module';
 import { storiesModule } from './tables/stories.module';
+import { contributorsModule } from './tables/contributors.module';
 
 export class SyncValidationError extends Error {}
 
@@ -13,6 +14,7 @@ export const tableRegistry = {
   locations: locationsModule,
   stories: storiesModule,
   creation_board: creationBoardModule,
+  contributors: contributorsModule,
 } satisfies Record<SyncTableKey, TableSyncModule>;
 
 export const SYNC_TABLE_KEYS = Object.keys(tableRegistry) as SyncTableKey[];

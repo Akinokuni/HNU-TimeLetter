@@ -15,7 +15,7 @@ async function main() {
     console.log(`同步完成，任务 ID: ${job.jobId}`);
     if (job.summary) {
       console.log(
-        `地点数: ${job.summary.locationCount ?? 0}, 故事数: ${job.summary.storyCount ?? 0}, 创作记录数: ${job.summary.creationIdeaCount ?? 0}`,
+        `地点数: ${job.summary.locationCount ?? 0}, 故事数: ${job.summary.storyCount ?? 0}, 创作记录数: ${job.summary.creationIdeaCount ?? 0}, 鸣谢人数: ${job.summary.contributorCount ?? 0}`,
       );
     }
   } catch (error) {
