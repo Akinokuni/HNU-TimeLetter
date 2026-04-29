@@ -11,10 +11,10 @@
 **设计目标**: 手机端放弃交互地图，采用高效的瀑布流列表。
 
 - **布局策略**:
-  - 推荐使用 CSS Grid 或 Masonry (Tailwind `columns-2 gap-4`)。
+  - 放弃等高 Grid，已启用原生 CSS Columns (Tailwind `columns-2 gap-4`) 配合 `break-inside-avoid` 实现真正的错落瀑布流。
 - **卡片组件 (`StoryCard`)**:
-  - 显示 `mainImageUrl` (Next.js Image, `placeholder="blur"`).
-  - **关键动效**: 给图片容器添加 `layoutId={`story-img-${story.id}`}` (Framer Motion)，这是实现 Magic Motion 转场的关键。
+  - 显示大图时已移除纵横比限制，使用 `object-contain` (详情页) 与原生 `img h-auto` (列表页) 杜绝白边与强行裁剪。
+  - **关键动效**: 给图片容器添加 `layoutId={`story-img-${story.id}`}` (Framer Motion)，这是实现 Magic Motion 转场的关键。同时使用 `staggerChildren` 进行列表级联入场，并已支持 `prefers-reduced-motion` 无障碍断点降级。
 
 ### 1.2 MobileDetailModal (详情模态框)
 

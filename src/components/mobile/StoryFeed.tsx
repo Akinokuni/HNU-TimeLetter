@@ -25,21 +25,21 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
         hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
         show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
       }}
-      className="flex flex-col bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden cursor-pointer"
+      className="flex flex-col bg-white rounded-xl shadow-sm border border-stone-100 overflow-hidden cursor-pointer mb-4 break-inside-avoid"
       onClick={onClick}
       whileTap={shouldReduceMotion ? {} : { scale: 0.96 }}
     >
-      <div className="relative w-full aspect-[4/5] bg-stone-100">
+      <div className="relative w-full bg-stone-100">
         <motion.div
           layoutId={`story-img-${story.id}`}
-          className="w-full h-full"
+          className="w-full"
         >
-          <Image
+          {/* 使用原生 img 标签配合 h-auto 破除固有宽高比约束，实现真实瀑布流错落高度 */}
+          <img
             src={getStoryMainImageUrl(story)}
             alt={story.characterName}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 50vw, 33vw"
+            loading="lazy"
+            className="w-full h-auto object-cover"
           />
         </motion.div>
       </div>
@@ -79,7 +79,7 @@ export function StoryFeed({ onStoryClick }: StoryFeedProps) {
   return (
     <div className="w-full px-4 py-6 overflow-y-auto h-full scrollbar-hide">
       <motion.div 
-        className="grid grid-cols-2 gap-4"
+        className="columns-2 gap-4"
         initial="hidden"
         animate="show"
         variants={{

@@ -44,6 +44,9 @@ FEISHU_VIEW_ID=...
 FEISHU_CREATION_TABLE_ID=your_creation_table_id
 FEISHU_CREATION_VIEW_ID=...
 
+# 鸣谢名单
+FEISHU_CONTRIBUTORS_TABLE_ID=tbl1aSvNwBjlVJzd
+
 # 阿里云 OSS 配置
 ALIYUN_OSS_REGION=oss-cn-guangzhou
 ALIYUN_OSS_BUCKET=your-bucket-name

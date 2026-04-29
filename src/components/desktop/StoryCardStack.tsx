@@ -69,9 +69,24 @@ export function StoryCardStack({ stories, activeIndices, onSwipe, onSelect }: St
                 })}
             </div>
 
-            <div className="absolute bottom-4 text-gray-400 text-sm animate-pulse">
-                {stories.length > 1 ? "Swipe to browse, Click to read" : "Click to read"}
-            </div>
+            <motion.div 
+                className="absolute -bottom-8 pointer-events-none text-stone-500/60 text-xs tracking-widest font-serif flex items-center justify-center gap-3 transition-opacity duration-500"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
+            >
+                {stories.length > 1 && (
+                    <>
+                        <span className="flex items-center gap-1">
+                            <span className="text-[10px] opacity-70">◀</span>
+                            左右拖拽切换
+                            <span className="text-[10px] opacity-70">▶</span>
+                        </span>
+                        <span className="w-1 h-1 rounded-full bg-stone-300"></span>
+                    </>
+                )}
+                <span>点击查看详情</span>
+            </motion.div>
         </div>
     );
 }
