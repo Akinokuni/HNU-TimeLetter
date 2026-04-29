@@ -207,7 +207,8 @@
   h3 {
     font-weight: 400;
     line-height: 1.4;
-    letter-spacing: 0.08em;
+    /* 标题字距：基线 0.08em × 1.5 = 0.12em —— 视觉规范 §2.2.3 */
+    letter-spacing: 0.12em;
     margin-top: 0;
     margin-bottom: 0.8em;
   }

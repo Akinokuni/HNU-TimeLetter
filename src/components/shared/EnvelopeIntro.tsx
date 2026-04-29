@@ -119,8 +119,8 @@ const LOGO_CENTER_Y_RATIO = 0.35;
 const LOGO_WIDTH_RATIO = 0.5;
 const LOGO_ASPECT = 1023.59 / 396.03;
 
-// 信封中心点：(80vw, 70vh)
-const ENVELOPE_CENTER_X_RATIO = 0.8;
+// 信封中心点：(75vw, 70vh)
+const ENVELOPE_CENTER_X_RATIO = 0.75;
 const ENVELOPE_CENTER_Y_RATIO = 0.7;
 
 // 入场动效时序（毫秒）
@@ -156,7 +156,7 @@ function calcLetterScale(): number {
 }
 
 /**
- * 计算信纸从 (80vw, 70vh) 中心位置移到视口正中心所需的偏移量
+ * 计算信纸从 (75vw, 70vh) 中心位置移到视口正中心所需的偏移量
  */
 function calcLetterCenterOffset(): { x: number; y: number } {
   const vw = window.innerWidth;
@@ -613,7 +613,7 @@ export function EnvelopeIntro() {
           </svg>
         )}
 
-        {/* ───── 信封 (z=3)：中心点锚定在 (80vw, 70vh) ───── */}
+        {/* ───── 信封 (z=3)：中心点锚定在 (75vw, 70vh) ───── */}
         {vw > 0 && (
           <motion.div
             className="absolute aspect-[595/397] perspective-1000"
