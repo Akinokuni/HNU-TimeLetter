@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
 import type { Story } from '@/lib/types';
 import { getStoryAvatarUrl, getStoryMainImageUrl } from '@/lib/content';
@@ -38,10 +38,6 @@ export function MobileDetailModal({
   hasMoreLocation,
   hasPrevLocation
 }: MobileDetailModalProps) {
-  const dragY = useMotionValue(0);
-  const backdropOpacity = useTransform(dragY, [0, 300], [1, 0]);
-  const contentScale = useTransform(dragY, [0, 300], [1, 0.95]);
-  
   // 控制箭头显示状态
   const [controlsVisible, setControlsVisible] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -86,26 +82,14 @@ export function MobileDetailModal({
 
   return (
     <motion.div 
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden"
-      style={{ opacity: backdropOpacity }}
+      className="fixed inset-0 z-[1200] flex items-end justify-center overflow-hidden"
     >
       <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <motion.div
-        className="relative w-full h-[96dvh] bg-background rounded-t-[40px] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
+        className="relative w-full h-[96dvh] bg-background rounded-t-xl flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
         layoutId={`story-card-${story.id}`}
-        style={{ y: dragY, scale: contentScale }}
         onClick={(e) => e.stopPropagation()}
-        drag="y"
-        dragConstraints={{ top: 0, bottom: 0 }}
-        dragElastic={{ top: 0, bottom: 0.8 }}
-        onDragEnd={(_, info) => {
-          if (info.offset.y > 60 || info.velocity.y > 300) {
-            onClose();
-          } else {
-            void animate(dragY, 0, { type: 'spring', stiffness: 300, damping: 30 });
-          }
-        }}
       >
         <div className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-stone-300/60 rounded-full z-30" />
 
