@@ -24,7 +24,7 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
         hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
         show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
       }}
-      className="flex flex-col bg-white rounded-[4px] shadow-sm border border-stone-100 overflow-hidden cursor-pointer mb-4 break-inside-avoid"
+      className="flex flex-col bg-white rounded-[8px] shadow-sm border border-stone-100 overflow-hidden cursor-pointer mb-2 break-inside-avoid"
       onClick={onClick}
       whileTap={shouldReduceMotion ? {} : { scale: 0.96 }}
     >
@@ -73,7 +73,7 @@ export function StoryFeed({ onStoryClick }: StoryFeedProps) {
     <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
       <div className="px-4 py-6">
         <motion.div
-          className="columns-2 gap-4"
+          className="columns-2 gap-2"
           initial="hidden"
           animate="show"
           variants={{
