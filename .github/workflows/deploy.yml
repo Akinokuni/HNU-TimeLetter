@@ -75,6 +75,12 @@ jobs:
       #   runtime/  → 同步任务状态与配置
       #   logs/     → 运行日志
       #   .env*     → 下一步单独写入
+      - name: 确保服务器已安装 rsync
+        run: |
+          ssh -p "$SERVER_PORT" \
+            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
+            "command -v rsync >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y -qq rsync)"
+
       - name: 同步构建产物至服务器
         run: |
           rsync -az --delete \
