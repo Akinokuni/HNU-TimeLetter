@@ -3,13 +3,15 @@
 /**
  * MobileExperience: 移动端核心体验容器
  * 负责人: Developer C
- * 
- * 整合 StoryFeed, MobileDetailModal 和 StaticMapModal
+ *
+ * 整合 StoryFeed, MobileDetailModal 和 StaticMapModal。
+ * 持有 Lenis 平滑滚动实例，详情页打开时暂停，关闭后恢复。
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Map as MapIcon } from 'lucide-react';
+import Lenis from 'lenis';
 import { StoryFeed } from './StoryFeed';
 import { MobileDetailModal } from './MobileDetailModal';
 import { StaticMapModal } from './StaticMapModal';
@@ -21,61 +23,61 @@ export function MobileExperience() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
-  // 获取所有有故事的地点
-  const locationsWithStories = useMemo(() => {
-    return data.locations.filter(loc => loc.stories.length > 0);
-  }, []);
+  const scrollWrapperRef = useRef<HTMLDivElement>(null);
+  const scrollContentRef = useRef<HTMLDivElement>(null);
+  const lenisRef = useRef<Lenis | null>(null);
 
-  // 扁平化全局故事列表
-  const allStories = useMemo(() => {
-    return flattenStoriesWithLocationName(data.locations) as Story[];
-  }, []);
-
-  const currentStory = useMemo(() => 
-    allStories.find(s => s.id === selectedId) || null
-  , [selectedId, allStories]);
-
-  // 导航逻辑：同地点切换 (Local)
-  const locationStories = useMemo(() => {
-    if (!currentStory) return [];
-    return allStories.filter(s => s.locationId === currentStory.locationId);
-  }, [currentStory, allStories]);
-
-  const currentLocalIndex = useMemo(() => {
-    return locationStories.findIndex(s => s.id === selectedId);
-  }, [locationStories, selectedId]);
-
-  const currentLocationIndex = useMemo(() => {
-    if (!currentStory) return -1;
-    return locationsWithStories.findIndex(l => l.id === currentStory.locationId);
-  }, [locationsWithStories, currentStory]);
-
-  const handleNextLocal = () => {
-    if (currentLocalIndex < locationStories.length - 1) setSelectedId(locationStories[currentLocalIndex + 1].id);
-  };
-
-  const handlePrevLocal = () => {
-    if (currentLocalIndex > 0) setSelectedId(locationStories[currentLocalIndex - 1].id);
-  };
-
-  // 导航逻辑：跨地点切换 (Global/Location Jump)
-  const handleNextLocation = () => {
-    if (currentLocationIndex < locationsWithStories.length - 1) setSelectedId(locationsWithStories[currentLocationIndex + 1].stories[0].id);
-  };
-
-  const handlePrevLocation = () => {
-    if (currentLocationIndex > 0) setSelectedId(locationsWithStories[currentLocationIndex - 1].stories[0].id);
-  };
-
-  // 滚动穿透锁定 (符合文档 4.2 要求)
+  // 初始化 Lenis 绑定到瀑布流容器
   useEffect(() => {
-    if (selectedId || isMapOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
+    const wrapper = scrollWrapperRef.current;
+    const content = scrollContentRef.current;
+    if (!wrapper || !content) return;
+
+    const lenis = new Lenis({
+      wrapper,
+      content,
+      duration: 1.2,
+      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 2,
+    });
+
+    lenisRef.current = lenis;
+
+    let rafId: number;
+    function raf(time: number) {
+      lenis.raf(time);
+      rafId = requestAnimationFrame(raf);
     }
-    return () => { document.body.style.overflow = 'auto'; };
+    rafId = requestAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      lenis.destroy();
+      lenisRef.current = null;
+    };
+  }, []);
+
+  // 详情页或地图打开时暂停 Lenis，关闭后恢复
+  useEffect(() => {
+    const lenis = lenisRef.current;
+    if (!lenis) return;
+    if (selectedId || isMapOpen) {
+      lenis.stop();
+    } else {
+      lenis.start();
+    }
   }, [selectedId, isMapOpen]);
+
+  // 地图弹窗时锁定 body 滚动
+  useEffect(() => {
+    document.body.style.overflow = isMapOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMapOpen]);
+
+  const allStories = useRef(flattenStoriesWithLocationName(data.locations) as Story[]);
+  const currentStory = allStories.current.find(s => s.id === selectedId) ?? null;
 
   return (
     <div className="relative w-full h-[100dvh] bg-background flex flex-col overflow-hidden">
@@ -89,24 +91,20 @@ export function MobileExperience() {
 
       {/* 2. Story Feed List */}
       <div className="flex-1 overflow-hidden">
-        <StoryFeed onStoryClick={(story) => setSelectedId(story.id)} />
+        <StoryFeed
+          onStoryClick={(story) => setSelectedId(story.id)}
+          wrapperRef={scrollWrapperRef}
+          contentRef={scrollContentRef}
+        />
       </div>
 
-      {/* 3. Detail Modal (Shared Layout Animation) */}
+      {/* 3. Detail Modal（右侧滑入） */}
       <AnimatePresence mode="wait">
         {currentStory && (
-          <MobileDetailModal 
-            key="detail-modal" 
-            story={currentStory} 
-            onClose={() => setSelectedId(null)} 
-            onNextLocal={handleNextLocal}
-            onPrevLocal={handlePrevLocal}
-            hasMoreLocal={currentLocalIndex < locationStories.length - 1}
-            hasPrevLocal={currentLocalIndex > 0}
-            onNextLocation={handleNextLocation}
-            onPrevLocation={handlePrevLocation}
-            hasMoreLocation={currentLocationIndex < locationsWithStories.length - 1}
-            hasPrevLocation={currentLocationIndex > 0}
+          <MobileDetailModal
+            key="detail-modal"
+            story={currentStory}
+            onClose={() => setSelectedId(null)}
           />
         )}
       </AnimatePresence>

@@ -9,6 +9,8 @@ import { flattenStoriesWithLocationName, getStoryAvatarUrl, getStoryMainImageUrl
 
 interface StoryFeedProps {
   onStoryClick: (story: Story) => void;
+  wrapperRef?: React.RefObject<HTMLDivElement | null>;
+  contentRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -20,28 +22,21 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
 
   return (
     <motion.div
-      layoutId={`story-card-${story.id}`}
       variants={{
         hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 20 },
         show: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
       }}
-      className="flex flex-col bg-white rounded-md shadow-sm border border-stone-100 overflow-hidden cursor-pointer mb-4 break-inside-avoid"
+      className="flex flex-col bg-white rounded-sm shadow-sm border border-stone-100 overflow-hidden cursor-pointer mb-4 break-inside-avoid"
       onClick={onClick}
       whileTap={shouldReduceMotion ? {} : { scale: 0.96 }}
     >
       <div className="relative w-full bg-stone-100">
-        <motion.div
-          layoutId={`story-img-${story.id}`}
-          className="w-full"
-        >
-          {/* 使用原生 img 标签配合 h-auto 破除固有宽高比约束，实现真实瀑布流错落高度 */}
-          <img
-            src={getStoryMainImageUrl(story)}
-            alt={story.characterName}
-            loading="lazy"
-            className="w-full h-auto object-cover"
-          />
-        </motion.div>
+        <img
+          src={getStoryMainImageUrl(story)}
+          alt={story.characterName}
+          loading="lazy"
+          className="w-full h-auto object-cover"
+        />
       </div>
 
       <div className="p-3 bg-white">
@@ -70,34 +65,38 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
 /**
  * StoryFeed: 移动端瀑布流列表
  * 负责人: Developer C
+ *
+ * wrapperRef / contentRef 由父组件 MobileExperience 传入，用于绑定 Lenis 容器滚动。
  */
-export function StoryFeed({ onStoryClick }: StoryFeedProps) {
+export function StoryFeed({ onStoryClick, wrapperRef, contentRef }: StoryFeedProps) {
   const allStories = useMemo(() => {
     return flattenStoriesWithLocationName(data.locations) as Story[];
   }, []);
 
   return (
-    <div className="w-full px-4 py-6 overflow-y-auto h-full scrollbar-hide">
-      <motion.div 
-        className="columns-2 gap-4"
-        initial="hidden"
-        animate="show"
-        variants={{
-          hidden: { opacity: 0 },
-          show: {
-            opacity: 1,
-            transition: { staggerChildren: 0.06 }
-          }
-        }}
-      >
-        {allStories.map((story) => (
-          <StoryCard 
-            key={story.id} 
-            story={story} 
-            onClick={() => onStoryClick(story)} 
-          />
-        ))}
-      </motion.div>
+    <div ref={wrapperRef} className="w-full h-full overflow-hidden">
+      <div ref={contentRef} className="px-4 py-6">
+        <motion.div
+          className="columns-2 gap-4"
+          initial="hidden"
+          animate="show"
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.06 }
+            }
+          }}
+        >
+          {allStories.map((story) => (
+            <StoryCard
+              key={story.id}
+              story={story}
+              onClick={() => onStoryClick(story)}
+            />
+          ))}
+        </motion.div>
+      </div>
     </div>
   );
 }

@@ -1,227 +1,109 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { X, MapPin } from 'lucide-react';
 import type { Story } from '@/lib/types';
 import { getStoryAvatarUrl, getStoryMainImageUrl } from '@/lib/content';
 
 interface MobileDetailModalProps {
   story: Story | null;
   onClose: () => void;
-  onNextLocal?: () => void;
-  onPrevLocal?: () => void;
-  hasMoreLocal?: boolean;
-  hasPrevLocal?: boolean;
-  onNextLocation?: () => void;
-  onPrevLocation?: () => void;
-  hasMoreLocation?: boolean;
-  hasPrevLocation?: boolean;
 }
 
 /**
- * MobileDetailModal: 移动端详情弹窗
+ * MobileDetailModal: 移动端单故事沉浸阅读视图
  * 负责人: Developer C
- * 
- * 优化: 箭头透明化，且在 1s 不活动后自动淡出
+ *
+ * 点击卡片后从右侧整页滑入，关闭时向右退出。
+ * 右上角 X 为唯一退出入口。
  */
-export function MobileDetailModal({ 
-  story, 
-  onClose, 
-  onNextLocal, 
-  onPrevLocal,
-  hasMoreLocal,
-  hasPrevLocal,
-  onNextLocation,
-  onPrevLocation,
-  hasMoreLocation,
-  hasPrevLocation
-}: MobileDetailModalProps) {
-  // 控制箭头显示状态
-  const [controlsVisible, setControlsVisible] = useState(true);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const touchStartXRef = useRef<number | null>(null);
-  const touchStartYRef = useRef<number | null>(null);
-
-  const resetTouchRefs = () => {
-    touchStartXRef.current = null;
-    touchStartYRef.current = null;
-  };
-
-  // 1s 自动淡出逻辑
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-
-    const handleInteraction = () => {
-      setControlsVisible(true);
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setControlsVisible(false);
-      }, 1000);
-    };
-
-    const scrollEl = scrollRef.current;
-    if (scrollEl) {
-      scrollEl.addEventListener('scroll', handleInteraction);
-    }
-    // 同时也监听整个模态框的点击/触摸
-    window.addEventListener('touchstart', handleInteraction);
-
-    // 初始状态：1s 后自动隐藏
-    timeoutId = setTimeout(() => setControlsVisible(false), 1000);
-
-    return () => {
-      if (scrollEl) scrollEl.removeEventListener('scroll', handleInteraction);
-      window.removeEventListener('touchstart', handleInteraction);
-      clearTimeout(timeoutId);
-    };
-  }, []);
+export function MobileDetailModal({ story, onClose }: MobileDetailModalProps) {
 
   if (!story) return null;
 
   return (
-    <motion.div 
-      className="fixed inset-0 z-[1200] flex items-end justify-center overflow-hidden"
-    >
-      <motion.div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-
+    <motion.div className="fixed inset-0 z-[1200]">
+      {/* 背景遮罩：独立 opacity 动画 */}
       <motion.div
-        className="relative w-full h-[96dvh] bg-background rounded-t-xl flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
-        layoutId={`story-card-${story.id}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      {/* 主内容：从右侧整页滑入 */}
+      <motion.div
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        className="fixed inset-0 bg-background flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 w-16 h-1.5 bg-stone-300/60 rounded-full z-30" />
-
-        {/* --- 浮动导航箭头：移除背景，增加淡出动画 --- */}
-        <motion.div 
-          className="absolute inset-x-2 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none z-40"
-          animate={{ opacity: controlsVisible ? 1 : 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          {hasPrevLocal ? (
-            <button
-              className="w-14 h-14 flex items-center justify-center text-stone-400/80 pointer-events-auto active:scale-90"
-              onClick={(e) => { e.stopPropagation(); onPrevLocal?.(); }}
-            >
-              <ChevronLeft className="w-10 h-10 drop-shadow-md" />
-            </button>
-          ) : <div />}
-
-          {hasMoreLocal ? (
-            <button
-              className="w-14 h-14 flex items-center justify-center text-stone-400/80 pointer-events-auto active:scale-90"
-              onClick={(e) => { e.stopPropagation(); onNextLocal?.(); }}
-            >
-              <ChevronRight className="w-10 h-10 drop-shadow-md" />
-            </button>
-          ) : <div />}
-        </motion.div>
-
-        {/* 可滚动的主体区域，将 touch 事件提升到这个占据整个剩余高度的容器上 */}
-        <div 
-          ref={scrollRef}
-          className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col"
-          onTouchStart={(e) => {
-            // 多指手势（缩放 / 翻页）不应被判定为地点切换，直接忽略。
-            if (e.touches.length !== 1) {
-              resetTouchRefs();
-              return;
-            }
-            touchStartXRef.current = e.touches[0]?.clientX ?? null;
-            touchStartYRef.current = e.touches[0]?.clientY ?? null;
-          }}
-          onTouchEnd={(e) => {
-            const startX = touchStartXRef.current;
-            const startY = touchStartYRef.current;
-            const endX = e.changedTouches[0]?.clientX;
-            const endY = e.changedTouches[0]?.clientY;
-            resetTouchRefs();
-            if (startX == null || startY == null || endX == null || endY == null) return;
-
-            const deltaX = endX - startX;
-            const deltaY = endY - startY;
-            const absX = Math.abs(deltaX);
-            const absY = Math.abs(deltaY);
-
-            // 水平主导性校验：只有当横向位移足够大且显著大于纵向位移时才触发地点切换，
-            // 避免与外层 framer-motion 的竖向下拉关闭手势相互干扰（斜拖会双触发）。
-            const HORIZONTAL_THRESHOLD = 80;
-            const DOMINANCE_RATIO = 1.5;
-            if (absX < HORIZONTAL_THRESHOLD) return;
-            if (absX < absY * DOMINANCE_RATIO) return;
-
-            if (deltaX > 0 && hasPrevLocation && onPrevLocation) onPrevLocation();
-            else if (deltaX < 0 && hasMoreLocation && onNextLocation) onNextLocation();
-          }}
-          onTouchCancel={resetTouchRefs}
-        >
-          {/* 图片区域 - 移除强制比例，改为让内部自由撑开并且去掉了背景色 */}
+        {/* 可滚动主体区域 */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col">
+          {/* 图片区域（无浮层） */}
           <div className="relative w-full flex-shrink-0">
-            <motion.div
-              key={`img-wrap-${story.id}`}
-              layoutId={`story-img-${story.id}`} 
-              className="relative w-full"
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-              {/* 改用标准 Image + width/height 自动撑开，而不是 absolute fill */}
-              <Image 
-                src={getStoryMainImageUrl(story)} 
-                alt={story.characterName} 
-                width={1200}
-                height={1200}
-                className="w-full h-auto object-contain pointer-events-none" 
-                priority 
-                sizes="100vw" 
-              />
-            </motion.div>
-
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent pointer-events-none" />
-
-            <button className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-white bg-black/30 backdrop-blur-md rounded-full z-20 pointer-events-auto" onClick={onClose}>
-              <X className="w-6 h-6" />
-            </button>
+            <Image
+              src={getStoryMainImageUrl(story)}
+              alt={story.characterName}
+              width={1200}
+              height={1200}
+              className="w-full h-auto object-contain pointer-events-none"
+              priority
+              sizes="100vw"
+            />
           </div>
 
           {/* 文本区域 */}
-          <div className="px-8 pt-8 pb-32 flex flex-col">
-            <div className="flex items-center gap-5 mb-8">
-              <motion.div key={`avatar-${story.id}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative w-16 h-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex-shrink-0">
-                <Image src={getStoryAvatarUrl(story)} alt={story.characterName} fill className="object-cover" sizes="64px" />
-              </motion.div>
-              <div className="flex flex-col">
-                <h2 className="text-2xl font-serif text-stone-800 tracking-tight mb-2">{story.characterName}</h2>
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1 text-[10px] text-white bg-stone-900 px-2 py-0.5 rounded font-sans uppercase tracking-widest">
-                    <MapPin className="w-2 h-2" />
-                    {story.locationName}
-                  </span>
-                  <span className="text-[10px] text-stone-400 font-serif">{story.date}</span>
+          <div className="px-8 pt-8 pb-16 flex flex-col">
+            {/* 文本头部：头像 + 角色名/标签 + X 关闭按钮 */}
+            <div className="flex items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-5">
+                <motion.div
+                  key={`avatar-${story.id}`}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="relative w-16 h-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex-shrink-0"
+                >
+                  <Image src={getStoryAvatarUrl(story)} alt={story.characterName} fill className="object-cover" sizes="64px" />
+                </motion.div>
+                <div className="flex flex-col">
+                  <h2 className="text-2xl font-serif text-stone-800 tracking-tight mb-2">{story.characterName}</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-[10px] text-white bg-stone-900 px-2 py-0.5 rounded font-sans uppercase tracking-widest">
+                      <MapPin className="w-2 h-2" />
+                      {story.locationName}
+                    </span>
+                    <span className="text-[10px] text-stone-400 font-serif">{story.date}</span>
+                  </div>
                 </div>
               </div>
+              <button
+                className="w-10 h-10 flex items-center justify-center text-stone-500 active:text-stone-800 flex-shrink-0"
+                onClick={onClose}
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
-            <motion.div key={`content-${story.id}`} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="font-serif text-stone-700 text-[17px] leading-[1.8] space-y-6 whitespace-pre-wrap">
+            <motion.div
+              key={`content-${story.id}`}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="font-serif text-stone-700 text-[17px] leading-[1.8] space-y-6 whitespace-pre-wrap"
+            >
               {story.content}
             </motion.div>
-            
-            <div className="mt-12 pt-6 border-t border-stone-100 flex flex-col gap-6">
+
+            <div className="mt-12 pt-6 border-t border-stone-100">
               <div className="flex justify-between items-center text-[10px] text-stone-400 font-serif uppercase tracking-[0.2em]">
                 <span>By {story.author}</span>
               </div>
-              
-              <div className="flex flex-col gap-2 p-4 bg-stone-50 rounded-2xl border border-stone-100/50">
-                <div className="flex items-center gap-2 opacity-50">
-                  <ChevronLeft className="w-3 h-3" /><ChevronRight className="w-3 h-3" />
-                  <span className="text-[9px] uppercase tracking-widest font-medium">屏幕两侧箭头: 翻阅当前地点</span>
-                </div>
-                <div className="flex items-center gap-2 opacity-60 text-stone-600">
-                  <span className="text-[9px] uppercase tracking-widest font-bold">左右滑动手势: 切换下一个地点</span>
-                </div>
-              </div>
             </div>
           </div>
-
         </div>
       </motion.div>
     </motion.div>
