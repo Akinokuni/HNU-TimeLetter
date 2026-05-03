@@ -59,6 +59,51 @@ jobs:
           ALIYUN_OSS_ACCESS_KEY_ID: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_ID }}
           ALIYUN_OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
 
+      # ── OSS 中转传输 ───────────────────────────────────────────────
+      # 将构建产物打包上传至已有的阿里云 OSS，再由服务器拉取。
+      # 相比 rsync 直连，利用 OSS 国内骨干网络，速度更稳定。
+      # runtime/、logs/、.env* 均不打包，由服务器自行持久化管理。
+      - name: 打包部署产物
+        run: |
+          tar -czf /tmp/deploy.tar.gz \
+            .next \
+            public \
+            src \
+            package.json \
+            package-lock.json \
+            next.config.ts \
+            tsconfig.json \
+            postcss.config.mjs \
+            ecosystem.config.js \
+            deploy
+
+      # 利用项目已有的 ali-oss 依赖完成上传，并生成 1 小时有效的签名下载链接
+      - name: 上传至 OSS 并生成签名下载链接
+        id: oss_upload
+        run: |
+          node -e "
+          const OSS = require('ali-oss');
+          (async () => {
+            const client = new OSS({
+              region: process.env.ALIYUN_OSS_REGION,
+              accessKeyId: process.env.ALIYUN_OSS_ACCESS_KEY_ID,
+              accessKeySecret: process.env.ALIYUN_OSS_ACCESS_KEY_SECRET,
+              bucket: process.env.ALIYUN_OSS_BUCKET,
+            });
+            const key = 'ci-deploy/latest.tar.gz';
+            await client.put(key, '/tmp/deploy.tar.gz');
+            const url = client.signatureUrl(key, { expires: 3600 });
+            const fs = require('fs');
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, 'deploy_url=' + url + '\n');
+            console.log('OSS upload complete');
+          })().catch(e => { console.error(e); process.exit(1); });
+          "
+        env:
+          ALIYUN_OSS_REGION: ${{ secrets.ALIYUN_OSS_REGION }}
+          ALIYUN_OSS_BUCKET: ${{ secrets.ALIYUN_OSS_BUCKET }}
+          ALIYUN_OSS_ACCESS_KEY_ID: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_ID }}
+          ALIYUN_OSS_ACCESS_KEY_SECRET: ${{ secrets.ALIYUN_OSS_ACCESS_KEY_SECRET }}
+
       # ── SSH 配置 ────────────────────────────────────────────────────
       - name: 配置 SSH 密钥
         uses: webfactory/ssh-agent@v0.9.0
@@ -69,39 +114,6 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           ssh-keyscan -p "$SERVER_PORT" -H "${{ secrets.SERVER_HOST }}" >> ~/.ssh/known_hosts
-
-      # ── 文件传输 ────────────────────────────────────────────────────
-      # 传输构建产物及运行时所需源文件；以下目录由服务器自行管理，不覆盖：
-      #   runtime/  → 同步任务状态与配置
-      #   logs/     → 运行日志
-      #   .env*     → 下一步单独写入
-      - name: 确保服务器已安装 rsync
-        run: |
-          ssh -p "$SERVER_PORT" \
-            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
-            "command -v rsync >/dev/null 2>&1 || (apt-get update -qq && apt-get install -y -qq rsync)"
-
-      - name: 同步构建产物至服务器
-        run: |
-          rsync -az --delete \
-            --exclude='.git/' \
-            --exclude='node_modules/' \
-            --exclude='runtime/' \
-            --exclude='logs/' \
-            --exclude='.env*' \
-            --exclude='test-results/' \
-            --exclude='playwright-report/' \
-            --exclude='tests/' \
-            --exclude='agents/' \
-            --exclude='.trae/' \
-            --exclude='.opencode/' \
-            --exclude='web设计/' \
-            --exclude='todo/' \
-            --exclude='docs/' \
-            --exclude='src/scripts/' \
-            -e "ssh -p $SERVER_PORT" \
-            ./ \
-            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}:$DEPLOY_PATH/"
 
       # 将所有运行时环境变量写入服务器的 .env.production
       # Next.js 在生产模式下自动加载该文件；同步服务（管理后台触发）也从此读取凭据
@@ -150,21 +162,20 @@ jobs:
           ADMIN_SESSION_SECRET: ${{ secrets.ADMIN_SESSION_SECRET }}
 
       # ── 服务器端操作 ────────────────────────────────────────────────
-      - name: 安装生产依赖
+      # 从 OSS 下载产物、解压、安装生产依赖、零停机重启
+      - name: 从 OSS 拉取产物并部署
         run: |
           ssh -p "$SERVER_PORT" \
             "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
-            "cd '$DEPLOY_PATH' && npm install --omit=dev"
-
-      # pm2 reload 实现零停机重启；若进程不存在则首次启动
-      - name: 重启应用服务
-        run: |
-          ssh -p "$SERVER_PORT" \
-            "${{ secrets.SERVER_USERNAME }}@${{ secrets.SERVER_HOST }}" \
-            "cd '$DEPLOY_PATH' && \
+            "set -e
+             mkdir -p '$DEPLOY_PATH'
+             curl -fSL '${{ steps.oss_upload.outputs.deploy_url }}' -o /tmp/deploy.tar.gz
+             tar -xzf /tmp/deploy.tar.gz -C '$DEPLOY_PATH'
+             cd '$DEPLOY_PATH'
+             npm install --omit=dev
              (pm2 reload '$PM2_APP_NAME' --update-env 2>/dev/null || \
-              pm2 start ecosystem.config.js --env production) && \
-             pm2 save"
+              pm2 start ecosystem.config.js --env production) && pm2 save
+             rm -f /tmp/deploy.tar.gz"
 
       - name: 验证部署状态
         run: |
