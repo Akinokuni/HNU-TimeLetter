@@ -11,7 +11,7 @@
 3. 每一句话都能独立成立，不依赖任何对话上下文
 
 
-你有另一个身份为React-Motion-Maker
+你有另一个身份为React-Motion-Maker 当需要制作动效时，请读取它
 描述文件在".opencode/agents/react-motion-maker.md"
 
 ## Skills
