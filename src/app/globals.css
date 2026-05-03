@@ -295,7 +295,7 @@ body.intro-scroll-locked {
   }
   .text-reading {
     font-size: var(--text-base);
-    line-height: 2;
+    line-height: 1.5;
     font-weight: 300;
     letter-spacing: 0.045em;
     max-width: 65ch;
