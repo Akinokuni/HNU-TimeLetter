@@ -68,9 +68,9 @@ export function StoryTextArea({ story, isVisible }: StoryTextAreaProps) {
               {story.content}
             </div>
 
-            {/* 底部信息: 作者与日期 */}
+            {/* 底部信息: 作者 */}
             <div className="mt-6 text-right text-sm text-gray-400 font-serif italic">
-              — {story.author} · {story.date}
+              — {story.author}
             </div>
           </div>
         </motion.div>

@@ -12,7 +12,6 @@ export interface Story {
   mainImageUrl: string;   // 高清大图路径
   content: string;        // 故事文本
   author: string;
-  date: string;           // YYYY.MM.DD
   locationId: string;     // 关联的地点ID
   locationName?: string;
 }

@@ -158,7 +158,6 @@ export const storiesModule: TableSyncModule<'stories'> = {
               mainImageUrl,
               content: getText(fields['故事内容']),
               author: getText(fields['投稿人']),
-              date: getText(fields['日期']),
               locationId: getText(fields['地点ID']),
             },
           };

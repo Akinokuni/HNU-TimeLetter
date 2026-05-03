@@ -46,7 +46,6 @@ export default async function ContentPage() {
                      <div className="flex-1">
                         <div className="flex justify-between">
                            <span className="font-bold">{story.characterName}</span>
-                           <span className="text-xs text-gray-500">{story.date}</span>
                         </div>
                         <p className="text-sm text-gray-700 mt-1 line-clamp-2">{story.content}</p>
                         <div className="mt-2 text-xs text-gray-400">
