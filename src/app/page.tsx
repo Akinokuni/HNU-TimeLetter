@@ -65,10 +65,10 @@ export default function Home() {
 
         {/* 下滚页面群 — ScrollSections 自带 page-paper 背景 */}
         <ScrollSections />
-
-        {/* 页脚占位空间 — 无背景，让固定页脚从下方"揭露" */}
-        <FooterSpacer />
       </div>
+
+      {/* 页脚占位空间 — 置于 z-1 容器之外，让点击穿透到固定页脚 */}
+      <FooterSpacer />
 
       {/* ── 自定义滑块：与 Lenis 同步的 DOM 滚动条 ── */}
       <CustomScrollbar enabled={scrollbarEnabled} lenis={lenis} />
@@ -96,5 +96,5 @@ function FooterSpacer() {
     return () => ro.disconnect();
   }, []);
 
-  return <div style={{ height: h }} aria-hidden="true" />;
+  return <div style={{ height: h, pointerEvents: 'none' }} aria-hidden="true" />;
 }

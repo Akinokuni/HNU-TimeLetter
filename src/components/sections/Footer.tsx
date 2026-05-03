@@ -28,24 +28,24 @@ interface FooterLink {
 
 const FOOTER_LINKS: FooterLink[] = [
   {
-    title: 'QQ 交流群',
-    description: '用于活动通知 / 反馈收集',
-    href: '#',
+    title: '活动公告',
+    description: '活动参与方式介绍',
+    href: 'https://himematsu.feishu.cn/docx/EbsDdehuLo1801xBzb1cxzJLnHb',
   },
   {
-    title: '项目主页',
-    description: '用于站点主入口跳转',
-    href: '#',
+    title: 'QQ 活动群',
+    description: '投稿创作交流',
+    href: 'https://qm.qq.com/q/cBMbFsbDS8',
+  },
+  {
+    title: 'B站主页',
+    description: '后续作品发表页面',
+    href: 'https://space.bilibili.com/3546960162196234',
   },
   {
     title: 'GitHub 仓库',
-    description: '用于源码与更新说明',
-    href: '#',
-  },
-  {
-    title: '邮件联系',
-    description: '用于合作或版权联络',
-    href: 'mailto:contact@himematsu.com',
+    description: '网页项目源码',
+    href: 'https://github.com/Akinokuni/HNU-TimeLetter',
   },
 ];
 
@@ -57,12 +57,14 @@ export function Footer() {
     >
       {/* ─── 大页脚导航 ─── */}
       <nav className="w-full max-w-7xl mx-auto px-6 md:px-24 py-5">
-        <div className="flex flex-wrap gap-7 justify-center md:justify-start">
+        <div className="flex flex-wrap gap-14 justify-center md:justify-start">
           {FOOTER_LINKS.map((link) => (
             <a
               key={link.title}
               href={link.href}
-              className="group flex flex-col gap-2.5 py-3.5 px-4 rounded-lg hover:bg-white/10 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex flex-col gap-2.5 py-3.5 px-8 rounded-lg hover:bg-white/10 transition-colors"
             >
               <span
                 className="text-xl font-sans tracking-wide"
