@@ -777,7 +777,7 @@ export function EnvelopeIntro() {
               : { duration: 0.3 }
           }
         >
-          点击开启
+          点击火漆启封
         </motion.p>
       </section>
     </div>

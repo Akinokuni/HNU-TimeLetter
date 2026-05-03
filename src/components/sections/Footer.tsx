@@ -84,7 +84,7 @@ export function Footer() {
       </nav>
 
       {/* ─── 巨大化 HIMEMATSU Logo ─── */}
-      <div className="w-full px-6 md:px-10 py-8 flex items-center justify-center">
+      <div className="w-full p-5 flex items-center justify-center">
         <Image
           src="/HIMEMATSU.svg"
           alt="HIMEMATSU"
