@@ -1,22 +1,40 @@
 # 与她的海大时光笺 (HNU-TimeLetter)
 
-> 基于海南大学校园地图的交互式视觉叙事网站
+> 基于海南大学校园地图的 Galgame 风格交互式视觉叙事网站
 
 ## 项目简介
 
-一个将 Galgame 风格的二次元角色与海南大学校园实景结合的交互式网站，通过「图 + 文 + 开信仪式」的形式呈现校园内的决定性瞬间与背后的故事，并延伸出 `/creation` 创作公示板与 `/admin` 后台管理。
+将 Galgame 风格的二次元角色与海南大学校园实景结合，以「图 + 文 + 开信仪式」的形式呈现校园内的决定性瞬间与背后的故事。站点由四条路由构成：
+
+| 路由 | 说明 |
+|---|---|
+| `/` | 启封主屏（信封开信仪式）+ 关于企划 / 关于我们 / 鸣谢 / 页脚下滚页面群 |
+| `/map` | 地图主体验——桌面端交互式地图 + 故事卡片，移动端掌心集邮册瀑布流 |
+| `/creation` | 群友共创灵感公示板，便签瀑布流 |
+| `/admin` | 后台管理——手动同步飞书数据、定时任务配置 |
+
+## 视觉基调
+
+- **背景色**: `#ece9e4` 暖灰纸面
+- **主强调色**: `#c23643` 火漆红
+- **标题字体**: `ChillDINGothic_SemiBold`（本地 OTF）
+- **正文字体**: `ZouLDFXKAJ`（本地 TTF）
+- **设计意象**: 被翻开的纪念册 + 收到的私人来信；5px 白边 + 16px 圆角全站视口画框
 
 ## 技术栈
 
-- **框架**: Next.js 16.1.6（App Router，Turbopack）
-- **语言**: TypeScript 5+（Strict Mode）
-- **样式**: Tailwind CSS v4 + Radix UI / Shadcn 风格组件
-- **动画**: Framer Motion v12
-- **平滑滚动**: Lenis（桌面端启封态）
-- **状态管理**: Zustand v5
-- **CMS**: 飞书多维表格（Feishu Bitable）
-- **对象存储**: 阿里云 OSS
-- **定时任务**: node-schedule（`/admin` 自动同步）
+| 层次 | 技术 |
+|---|---|
+| 框架 | Next.js 16.1.6（App Router，Turbopack） |
+| 语言 | TypeScript 5+（Strict Mode） |
+| 样式 | Tailwind CSS v4 + Radix UI / Shadcn 风格组件 |
+| 动画 | Framer Motion v12 |
+| 平滑滚动 | Lenis（桌面端启封态下滚页面群） |
+| 状态管理 | Zustand v5 |
+| CMS | 飞书多维表格（Feishu Bitable） |
+| 对象存储 | 阿里云 OSS |
+| 定时任务 | node-schedule（`/admin` 自动同步） |
+| 测试 | Playwright（E2E） |
 
 ## 快速开始
 
@@ -33,26 +51,26 @@ Node.js 版本要求 ≥ 20。
 复制 `.env.example` 为 `.env.local` 并填写凭证：
 
 ```bash
-cp .env.example .env.local  # Linux/Mac
+cp .env.example .env.local   # Linux / macOS
 copy .env.example .env.local  # Windows
 ```
 
 关键变量（详见 [docs/guides/飞书CMS配置.md](./docs/guides/飞书CMS配置.md)）：
 
 - **飞书基础**：`FEISHU_APP_ID` / `FEISHU_APP_SECRET` / `FEISHU_APP_TOKEN` / `FEISHU_TABLE_ID` / `FEISHU_VIEW_ID`
-- **创作公示板（可选）**：`FEISHU_CREATION_TABLE_ID` / `FEISHU_CREATION_VIEW_ID`
+- **创作公示板**：`FEISHU_CREATION_TABLE_ID` / `FEISHU_CREATION_VIEW_ID`
 - **阿里云 OSS**：`ALIYUN_OSS_REGION` / `ALIYUN_OSS_BUCKET` / `ALIYUN_OSS_ACCESS_KEY_ID` / `ALIYUN_OSS_ACCESS_KEY_SECRET`
-- **后台鉴权**：`ADMIN_PASSWORD`（`/admin` 登录用，未配置时回退 `admin`，上线前务必覆盖）
+- **后台鉴权**：`ADMIN_PASSWORD`（未配置时回退为 `admin`，上线前务必覆盖）
 
 ### 3. 同步数据
 
-从飞书拉取最新数据：
+从飞书拉取最新内容：
 
 ```bash
 npm run sync
 ```
 
-完成后会在 `src/data/` 下生成 `content.json`（首页故事）与 `creation-board.json`（创作公示板）。
+产物写入 `src/data/content.json`（首页故事）与 `src/data/creation-board.json`（创作公示板）。
 
 ### 4. 启动开发服务器
 
@@ -60,7 +78,10 @@ npm run sync
 npm run dev
 ```
 
-访问 [http://localhost:3000](http://localhost:3000)。后台管理入口为 [http://localhost:3000/admin](http://localhost:3000/admin)。
+- 首页：[http://localhost:3000](http://localhost:3000)
+- 地图主体验：[http://localhost:3000/map](http://localhost:3000/map)
+- 创作公示板：[http://localhost:3000/creation](http://localhost:3000/creation)
+- 后台管理：[http://localhost:3000/admin](http://localhost:3000/admin)
 
 ## 项目结构
 
@@ -69,14 +90,16 @@ src/
 ├── app/
 │   ├── admin/              # /admin 后台（登录 + 受保护分组）
 │   ├── api/admin/          # 后台 API（登录、手动同步）
-│   ├── creation/           # /creation 创作公示板
-│   ├── layout.tsx          # 全局布局 + 本地字体注册
-│   ├── page.tsx            # 首页（启封主屏 + 下滚页面群 + 主体验）
+│   ├── creation/           # /creation 创作公示板路由
+│   ├── map/                # /map 地图主体验路由
+│   ├── layout.tsx          # 全局布局 + 本地字体注册 + 全站视口画框
+│   ├── page.tsx            # 首页（启封主屏 + 下滚页面群）
 │   ├── loading.tsx
 │   └── not-found.tsx
 ├── components/
 │   ├── ui/                 # Shadcn 风格基础组件
-│   ├── shared/             # EnvelopeIntro / GuideLine / CustomScrollbar 等
+│   ├── shared/             # EnvelopeIntro / GuideLine / CustomScrollbar
+│   │                       # GlobalNav / TransitionOverlay
 │   ├── sections/           # AboutProject / AboutUs / Credits / Footer / ScrollSections
 │   ├── desktop/            # PC 端组件（Dev B）
 │   ├── mobile/             # 移动端组件（Dev C）
@@ -94,17 +117,11 @@ src/
 └── scripts/                # sync-feishu.ts + 飞书 / OSS 调试脚本
 ```
 
-根目录另有 `public/` 静态资源（含 `ChillDINGothic_SemiBold.otf` / `ZouLDFXKAJ.ttf` 本地字体）、`tests/e2e/` Playwright 用例、以及 `agents/` / `.opencode/agents/` 等协作资产目录（不纳入 `src/` 编译边界）。
-
-## 开发分工
-
-- **Developer A**：架构、数据管道与后台管理（[docs/roles/基础设施-DevA.md](./docs/roles/基础设施-DevA.md)）
-- **Developer B**：PC 端地图 / 卷轴 / 故事看板（[docs/roles/PC端开发-DevB.md](./docs/roles/PC端开发-DevB.md)）
-- **Developer C**：移动端瀑布流与详情页转场（[docs/roles/移动端开发-DevC.md](./docs/roles/移动端开发-DevC.md)）
+根目录另有 `public/` 静态资源（含本地字体）、`tests/e2e/` Playwright 用例，以及 `agents/` / `.opencode/agents/` / `.trae/skills/` 协作资产目录（不纳入 `src/` 编译边界）。
 
 ## 数据模型速览
 
-核心领域类型以 [src/lib/types.ts](./src/lib/types.ts) 为准，包括：
+核心领域类型以 [src/lib/types.ts](./src/lib/types.ts) 为准：
 
 - `Story`：首页展陈故事记录。
 - `LocationPoint`：地图 Pin 聚合结构。
@@ -114,23 +131,23 @@ src/
 
 ## 部署
 
-项目默认部署到 Vercel。构建时会自动执行 `npm run sync` 拉取最新数据：
+项目默认部署到 Vercel。构建命令会自动拉取飞书最新数据：
 
 ```bash
 npm run build
 ```
 
-生产环境务必通过 Vercel Environment Variables 下发 `ADMIN_PASSWORD`、飞书与 OSS 凭证。
+生产环境须通过 Vercel Environment Variables 下发 `ADMIN_PASSWORD`、飞书与 OSS 凭证。
 
 ## 文档索引
 
-文档入口：[docs/文档索引.md](./docs/文档索引.md)。常用子文档：
+文档入口：[docs/文档索引.md](./docs/文档索引.md)
 
 - 架构：[技术栈](./docs/architecture/技术栈.md) · [数据模型](./docs/architecture/数据模型.md)
 - 指南：[环境搭建](./docs/guides/环境搭建.md) · [飞书 CMS 配置](./docs/guides/飞书CMS配置.md)
-- 设计：[交互设计](./docs/design/交互设计.md) · [创作公示板](./docs/design/创作公示板.md) · [视觉规范](./docs/design/视觉规范.md) · [后台管理系统](./docs/design/后台管理系统.md)
+- 设计：[交互设计](./docs/design/交互设计.md) · [视觉规范](./docs/design/视觉规范.md) · [创作公示板](./docs/design/创作公示板.md) · [全站视口画框](./docs/design/全站视口画框.md) · [开屏页重构](./docs/design/开屏页重构.md) · [后台管理系统](./docs/design/后台管理系统.md)
 - 进度与评审：[项目进度](./docs/项目进度.md) · [评审报告目录](./docs/review/)
 
 ## License
 
-MIT
+本项目以 [MIT License](./LICENSE) 授权发布。
