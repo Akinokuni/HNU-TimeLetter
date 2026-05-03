@@ -9,8 +9,6 @@ import { flattenStoriesWithLocationName, getStoryAvatarUrl, getStoryMainImageUrl
 
 interface StoryFeedProps {
   onStoryClick: (story: Story) => void;
-  wrapperRef?: React.RefObject<HTMLDivElement | null>;
-  contentRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -65,17 +63,15 @@ function StoryCard({ story, onClick }: { story: Story; onClick: () => void }) {
 /**
  * StoryFeed: 移动端瀑布流列表
  * 负责人: Developer C
- *
- * wrapperRef / contentRef 由父组件 MobileExperience 传入，用于绑定 Lenis 容器滚动。
  */
-export function StoryFeed({ onStoryClick, wrapperRef, contentRef }: StoryFeedProps) {
+export function StoryFeed({ onStoryClick }: StoryFeedProps) {
   const allStories = useMemo(() => {
     return flattenStoriesWithLocationName(data.locations) as Story[];
   }, []);
 
   return (
-    <div ref={wrapperRef} className="w-full h-full overflow-hidden">
-      <div ref={contentRef} className="px-4 py-6">
+    <div className="w-full h-full overflow-y-auto overflow-x-hidden scrollbar-hide">
+      <div className="px-4 py-6">
         <motion.div
           className="columns-2 gap-4"
           initial="hidden"

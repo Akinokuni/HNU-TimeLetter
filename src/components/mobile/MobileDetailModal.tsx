@@ -42,10 +42,40 @@ export function MobileDetailModal({ story, onClose }: MobileDetailModalProps) {
         className="fixed inset-0 bg-background flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* 可滚动主体区域 */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide flex flex-col">
-          {/* 图片区域（无浮层） */}
-          <div className="relative w-full flex-shrink-0">
+        {/* 固定顶部 header：不随内容滚动 */}
+        <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-stone-100 bg-background flex-shrink-0">
+          <div className="flex items-center gap-4">
+            <motion.div
+              key={`avatar-${story.id}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="relative w-12 h-12 rounded-full border-2 border-white shadow-lg overflow-hidden bg-white flex-shrink-0"
+            >
+              <Image src={getStoryAvatarUrl(story)} alt={story.characterName} fill className="object-cover" sizes="48px" />
+            </motion.div>
+            <div className="flex flex-col">
+              <h2 className="text-lg font-serif text-stone-800 tracking-tight mb-1 leading-tight">{story.characterName}</h2>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1 text-[10px] text-white bg-stone-900 px-2 py-0.5 rounded font-sans uppercase tracking-widest">
+                  <MapPin className="w-2 h-2" />
+                  {story.locationName}
+                </span>
+                <span className="text-[10px] text-stone-400 font-serif">{story.date}</span>
+              </div>
+            </div>
+          </div>
+          <button
+            className="w-10 h-10 flex items-center justify-center text-stone-500 active:text-stone-800 flex-shrink-0"
+            onClick={onClose}
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* 可滚动主体区域：图片 + 正文 */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
+          {/* 图片区域 */}
+          <div className="relative w-full">
             <Image
               src={getStoryMainImageUrl(story)}
               alt={story.characterName}
@@ -57,38 +87,8 @@ export function MobileDetailModal({ story, onClose }: MobileDetailModalProps) {
             />
           </div>
 
-          {/* 文本区域 */}
+          {/* 正文区域 */}
           <div className="px-8 pt-8 pb-16 flex flex-col">
-            {/* 文本头部：头像 + 角色名/标签 + X 关闭按钮 */}
-            <div className="flex items-center justify-between gap-4 mb-8">
-              <div className="flex items-center gap-5">
-                <motion.div
-                  key={`avatar-${story.id}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="relative w-16 h-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white flex-shrink-0"
-                >
-                  <Image src={getStoryAvatarUrl(story)} alt={story.characterName} fill className="object-cover" sizes="64px" />
-                </motion.div>
-                <div className="flex flex-col">
-                  <h2 className="text-2xl font-serif text-stone-800 tracking-tight mb-2">{story.characterName}</h2>
-                  <div className="flex items-center gap-2">
-                    <span className="flex items-center gap-1 text-[10px] text-white bg-stone-900 px-2 py-0.5 rounded font-sans uppercase tracking-widest">
-                      <MapPin className="w-2 h-2" />
-                      {story.locationName}
-                    </span>
-                    <span className="text-[10px] text-stone-400 font-serif">{story.date}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                className="w-10 h-10 flex items-center justify-center text-stone-500 active:text-stone-800 flex-shrink-0"
-                onClick={onClose}
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
             <motion.div
               key={`content-${story.id}`}
               initial={{ opacity: 0, y: 10 }}

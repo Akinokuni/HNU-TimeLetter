@@ -5,13 +5,12 @@
  * 负责人: Developer C
  *
  * 整合 StoryFeed, MobileDetailModal 和 StaticMapModal。
- * 持有 Lenis 平滑滚动实例，详情页打开时暂停，关闭后恢复。
+ * 详情页打开时锁定 body 滚动，防止穿透。
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Map as MapIcon } from 'lucide-react';
-import Lenis from 'lenis';
 import { StoryFeed } from './StoryFeed';
 import { MobileDetailModal } from './MobileDetailModal';
 import { StaticMapModal } from './StaticMapModal';
@@ -23,58 +22,11 @@ export function MobileExperience() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
 
-  const scrollWrapperRef = useRef<HTMLDivElement>(null);
-  const scrollContentRef = useRef<HTMLDivElement>(null);
-  const lenisRef = useRef<Lenis | null>(null);
-
-  // 初始化 Lenis 绑定到瀑布流容器
+  // 详情页或地图打开时锁定 body 滚动，防止穿透
   useEffect(() => {
-    const wrapper = scrollWrapperRef.current;
-    const content = scrollContentRef.current;
-    if (!wrapper || !content) return;
-
-    const lenis = new Lenis({
-      wrapper,
-      content,
-      duration: 1.2,
-      easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      smoothWheel: true,
-      wheelMultiplier: 1,
-      touchMultiplier: 2,
-    });
-
-    lenisRef.current = lenis;
-
-    let rafId: number;
-    function raf(time: number) {
-      lenis.raf(time);
-      rafId = requestAnimationFrame(raf);
-    }
-    rafId = requestAnimationFrame(raf);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      lenis.destroy();
-      lenisRef.current = null;
-    };
-  }, []);
-
-  // 详情页或地图打开时暂停 Lenis，关闭后恢复
-  useEffect(() => {
-    const lenis = lenisRef.current;
-    if (!lenis) return;
-    if (selectedId || isMapOpen) {
-      lenis.stop();
-    } else {
-      lenis.start();
-    }
-  }, [selectedId, isMapOpen]);
-
-  // 地图弹窗时锁定 body 滚动
-  useEffect(() => {
-    document.body.style.overflow = isMapOpen ? 'hidden' : '';
+    document.body.style.overflow = (selectedId || isMapOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
-  }, [isMapOpen]);
+  }, [selectedId, isMapOpen]);
 
   const allStories = useRef(flattenStoriesWithLocationName(data.locations) as Story[]);
   const currentStory = allStories.current.find(s => s.id === selectedId) ?? null;
@@ -93,8 +45,6 @@ export function MobileExperience() {
       <div className="flex-1 overflow-hidden">
         <StoryFeed
           onStoryClick={(story) => setSelectedId(story.id)}
-          wrapperRef={scrollWrapperRef}
-          contentRef={scrollContentRef}
         />
       </div>
 
