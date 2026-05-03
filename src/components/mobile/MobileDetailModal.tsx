@@ -93,7 +93,7 @@ export function MobileDetailModal({ story, onClose }: MobileDetailModalProps) {
               key={`content-${story.id}`}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="font-serif text-stone-700 text-[17px] leading-[1.8] space-y-6 whitespace-pre-wrap"
+              className="font-serif text-stone-700 text-[14px] leading-[1.8] space-y-6 whitespace-pre-wrap"
             >
               {story.content}
             </motion.div>
