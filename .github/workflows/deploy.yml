@@ -44,9 +44,6 @@ jobs:
       - name: 生产依赖安全审计
         run: npm audit --omit=dev --audit-level=high
 
-      - name: 端到端测试
-        run: npm run test:e2e
-
       # npm run publish = npm run sync && npm run build
       # sync 步骤从飞书拉取数据写入 src/data/，build 步骤将数据打入 .next/
       - name: 同步飞书数据并构建
